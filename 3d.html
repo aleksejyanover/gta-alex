@@ -314,19 +314,26 @@ const ED = ({
           {type:'escape',   text:'Полиция вмешалась — сбрось', pay:1600},
           {type:'takeover', text:'Забери весь город себе', time:72, pay:3800}
         ]},
-  // СПЕЦИАЛ: день рождения, без розыска, подарки
-  'special': {title:'GTA АЛЕКС: СПЕЦИАЛ', short:'СПЕЦИАЛ', sub:'ДЕНЬ РОЖДЕНИЯ • ПРАЗДНИК БЕЗ ПРАВИЛ',
-        tod:0.7, dayLen:200, skyDay:0x8ec9ee, skyNight:0x0a1024, skySet:0xff7ab8,
-        palette:[0xff8ac0,0xffd166,0x7ad7f0,0xa0e8a0,0xfff0f5,0xffb3c7],
-        special:true, party:true, cars:38, peds:68, hud:'#ff9ac8',
-        fp:false, real:1, phone:true,
+  // СПЕЦИАЛ: максимум всего — лучше любой другой версии. Открыт только владельцу.
+  'special': {title:'GTA АЛЕКС: СПЕЦИАЛ', short:'СПЕЦИАЛ', sub:'ТОЛЬКО ДЛЯ ВЛАДЕЛЬЦА • ВСЁ ЛУЧШЕЕ СРАЗУ',
+        tod:0.62, dayLen:420, skyDay:0x8ec9ee, skyNight:0x070518, skySet:0xff7ab8,
+        palette:[0xff8ac0,0xffd166,0x7ad7f0,0xa0e8a0,0xfff0f5,0xffb3c7,
+                 0x9a6ae0,0x50c8d0,0xf2f0e8,0x6ad0c0],
+        special:true, party:true, cars:56, peds:92, hud:'#ff9ac8',
+        // графика уровня GTA 6 и выше: вид от первого лица + HQ-рендер
+        fp:true, real:3, neon:true, coast:true, sport:true,
+        // всё лучшее из остальных версий: гонки, банды, гараж, киллеры, телефон, поддержка
+        race:true, ramps:true, gangs:true, garage:true, crew:true, style:true,
+        killers:3, phone:true, support:true,
         missions:[
-          {type:'car',     text:'Сядь в машину — поехали праздновать'},
-          {type:'collect', text:'Собери 3 праздничных подарка', time:95, pay:750},
-          {type:'deliver', text:'Праздничная доставка в центр', time:95, pay:950},
-          {type:'collect', text:'Ещё подарки: 4 штуки', time:90, pay:1300},
-          {type:'deliver', text:'Вези торт на площадь', time:90, pay:1700},
-          {type:'collect', text:'Финальный сбор подарков', time:85, pay:2300}
+          {type:'car',     text:'Сядь в машину — начинаем праздник'},
+          {type:'race',    text:'Праздничная гонка: 5 точек', time:90, pay:1200},
+          {type:'collect', text:'Собери 4 праздничных подарка', time:90, pay:1500},
+          {type:'takeover',text:'Захвати площадь у главной сцены', time:85, pay:2200},
+          {type:'deliver', text:'Вези торт на главную площадь', time:85, pay:2600},
+          {type:'race',    text:'Финальная гонка по набережной', time:110, pay:3400},
+          {type:'escape',  text:'Праздник закончился — сбрось полицию', pay:2800},
+          {type:'takeover',text:'Забери весь город себе', time:80, pay:5000}
         ]}
 })[E] || ({
   title:'GTA АЛЕКС 3', short:'GTA АЛЕКС 3', sub:'КЛАССИЧЕСКАЯ ТРОЙКА', tod:0.38, dayLen:240,
@@ -342,8 +349,12 @@ document.querySelectorAll('.logo .sub').forEach(el => {
   if(el.textContent.indexOf('ALEX CITY') === 0 || el.textContent.indexOf('ОТКРЫТЫЙ') === 0) el.textContent = ED.sub;
 });
 
-/* ===== «СПЕЦИАЛ» ОТКРЫВАЕТСЯ ТОЛЬКО 4 ОКТЯБРЯ, НАЧИНАЯ С 2027 ГОДА ===== */
+/* ===== «СПЕЦИАЛ» ОТКРЫВАЕТСЯ ТОЛЬКО 4 ОКТЯБРЯ — НО ДЛЯ ВЛАДЕЛЬЦА ОТКРЫТ ВСЕГДА ===== */
+function isOwnerNow(){
+  try{ return !!(window.GA && GA.isOwner && GA.isOwner()); }catch(e){ return false; }
+}
 function specialIsOpen(){
+  if(isOwnerNow()) return true;              // владелец играет в «Специал» в любой день
   const n = new Date();
   return n.getFullYear() >= 2027 && n.getMonth() === 9 && n.getDate() === 4;
 }
@@ -2753,7 +2764,7 @@ function updatePed(p, dt){
           bullets.push({x:p.x + Math.cos(a)*0.7, z:p.z + Math.sin(a)*0.7,
             vx:Math.cos(a)*95, vz:Math.sin(a)*95, life:0.6, from:'cop'});
           noise(0.07, 0.2, 2200, 'highpass');
-          if(!ED.party && Math.random() < 0.35) lawHunt(p, 'БАНДИТ'); // стрельба — на выезд
+          if((!ED.party || ED.special) && Math.random() < 0.35) lawHunt(p, 'БАНДИТ'); // стрельба — на выезд
         }
       } else {
         if(p.turn <= 0){ p.turn = rand(0.8, 3); p.angle += rand(-1.4, 1.4); }
@@ -3007,7 +3018,8 @@ function explode(x, z, big){
 /* ============================== РОЗЫСК ============================== */
 function starsWanted(){ return clamp(Math.ceil(S.wanted - 0.05), 0, 5); }
 function addCrime(v){
-  if(ED.party) return;                       // на празднике розыск не растёт
+  if(ED.party && !ED.special) return;          // на празднике розыск не растёт...
+  // ...но в «Специале» — полный набор: полиция, вертолёты, дроны и танки
   S.wanted = Math.min(5, S.wanted + v * (ED.crime || 1)); S.crimeTime = 0;
 }
 /* Полиция приезжает НА БАНДИТОВ (NPC): киллеров и чужую банду */

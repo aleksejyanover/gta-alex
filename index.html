@@ -96,6 +96,11 @@
   .accBtn.out { background:linear-gradient(180deg,#ff9a8a,#e0453a); box-shadow:0 3px 0 #6b140c; color:#fff; }
   .accMsg { margin-top:9px; font-size:12px; min-height:16px; color:#ff8a7a; letter-spacing:1px; }
   .accMsg.ok { color:#9dffb0; }
+  /* секретная точка владельца: едва заметна, проявляется при наведении */
+  .accDot { width:7px; height:7px; padding:0; border:none; border-radius:50%;
+    background:#2a2e36; cursor:pointer; align-self:center;
+    opacity:0.30; transition:opacity .25s, background .25s, box-shadow .25s; }
+  .accDot:hover { opacity:1; background:#ffd23f; box-shadow:0 0 9px #ffd23f, 0 0 3px #fff; }
   .accHint { font-size:11px; color:#6e6f78; letter-spacing:1px; margin-top:3px; line-height:1.6; }
 </style>
 </head>
@@ -124,6 +129,7 @@
     <div class="accForm" id="accForm">
       <input id="accName" placeholder="Имя аккаунта" maxlength="20" autocomplete="off">
       <input id="accPass" type="password" placeholder="Пароль" maxlength="40" autocomplete="off">
+      <button class="accDot" id="accDot" title="" style="display:none" aria-hidden="true"></button>
       <button class="accBtn" id="btnLogin">ВОЙТИ</button>
       <button class="accBtn alt" id="btnReg">РЕГИСТРАЦИЯ</button>
       <button class="accBtn out" id="btnLogout" style="display:none">ВЫЙТИ</button>
@@ -175,7 +181,11 @@ function ageParts(){
           h:Math.max(0,h), mi:Math.max(0,mi), s:Math.max(0,s)};
 }
 function isBirthdayNow(n){ n = n || new Date(); return n.getMonth() === 9 && n.getDate() === 4; }
+function isOwnerNow(){
+  try{ return !!(window.GA && GA.isOwner && GA.isOwner()); }catch(e){ return false; }
+}
 function specialOpen(){
+  if(isOwnerNow()) return true;              // владелец играет в «Специал» в любой день
   const n = new Date();
   return n.getFullYear() >= SPECIAL_FIRST_YEAR && isBirthdayNow(n);
 }
@@ -320,6 +330,26 @@ $('btnReg').addEventListener('click', () => {
 });
 $('btnLogout').addEventListener('click', () => { GA.logout(); msg('Вы вышли из аккаунта', true); refreshAcc(); });
 $('accPass').addEventListener('keydown', e => { if(e.key === 'Enter') $('btnLogin').click(); });
+
+/* ===== СЕКРЕТНАЯ ТОЧКА ВЛАДЕЛЬЦА =====
+   Появляется, когда в поле имени набрано имя владельца.
+   Нажатие на неё входит в аккаунт владельца сразу.            */
+const dot = $('accDot');
+function dotCheck(){
+  const who = (window.GA && GA.OWNER && GA.OWNER.name) ? GA.OWNER.name : '';
+  const typed = ($('accName').value || '').trim().toLowerCase();
+  dot.style.display = (who && typed === who.toLowerCase()) ? '' : 'none';
+}
+$('accName').addEventListener('input', dotCheck);
+$('accName').addEventListener('keyup', dotCheck);
+dot.addEventListener('click', () => {
+  const O = (window.GA && GA.OWNER) || {};
+  if(!O.name) return;
+  const r = GA.login(O.name, O.pass);
+  if(r.ok){ msg('👑 Вход выполнен — ВЛАДЕЛЕЦ', true); refreshAcc(); }
+  else msg(r.err || 'Не удалось войти');
+});
+dotCheck();
 refreshAcc();
 })();
 </script>
