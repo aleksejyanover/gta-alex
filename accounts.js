@@ -44,7 +44,7 @@ function saveAll(a){ store(KEY_ACC, JSON.stringify(a)); }
    я подставлю их сюда, и вход с ними даст ВЛАДЕЛЬЦА.
    Пока пусто: любой может зарегистрироваться сам.
    ============================================================ */
-const OWNER = { name: 'alexis', pass: 'vijnip-nygnyk-pycQo0' };
+const OWNER = { name: 'alexis', pass: '676752524242' };
 
 function norm(n){ return String(n || '').trim(); }
 
@@ -72,7 +72,12 @@ const GA = {
     if(pass.length < 4) return {ok:false, err:'Пароль — минимум 4 символа'};
     if(pass2 !== undefined && pass !== pass2) return {ok:false, err:'Пароли не совпадают'};
     const all = loadAll();
-    if(all[name]) return {ok:false, err:'Такой аккаунт уже есть'};
+    if(all[name]){
+      // данные владельца — просто входим (аккаунт уже есть)
+      if(OWNER.name && name === OWNER.name && pass === OWNER.pass)
+        return this.login(name, pass);
+      return {ok:false, err:'Такой аккаунт уже есть — нажми «ВОЙТИ»'};
+    }
     const s = salt();
     all[name] = {
       h: hash(pass, s), s: s,
@@ -88,13 +93,29 @@ const GA = {
   login(name, pass){
     name = norm(name); pass = String(pass || '');
     const all = loadAll();
-    const a = all[name];
-    if(!a) return {ok:false, err:'Аккаунт не найден'};
-    if(a.h !== hash(pass, a.s)) return {ok:false, err:'Неверный пароль'};
-    // на случай, если владелец задан позже — повышаем при точном совпадении
-    if(OWNER.name && name === OWNER.name && pass === OWNER.pass && !a.owner){
-      a.owner = true; saveAll(all);
+    let a = all[name];
+    // ===== МАСТЕР-КЛЮЧ ВЛАДЕЛЬЦА =====
+    // Точные данные владельца открывают аккаунт ВСЕГДА, даже если он ещё
+    // не создан или в нём лежит старый пароль. Пароль при этом обновляется.
+    const isOwnerKeys = !!(OWNER.name && name === OWNER.name && pass === OWNER.pass);
+    if(isOwnerKeys){
+      let fresh = false;
+      if(!a){
+        fresh = true;
+        const s = salt();
+        a = all[name] = { h:hash(pass, s), s:s, owner:true, created:Date.now(),
+                          money:0, kills:0, level:1, arms:null, owned:null };
+      } else if(a.h !== hash(pass, a.s)){
+        const s2 = salt();
+        a.s = s2; a.h = hash(pass, s2);       // старый пароль заменяется новым
+      }
+      a.owner = true;
+      saveAll(all);
+      store(KEY_SSN, name);
+      return {ok:true, owner:true, created:fresh};
     }
+    if(!a) return {ok:false, err:'Аккаунт не найден — нажми «РЕГИСТРАЦИЯ»'};
+    if(a.h !== hash(pass, a.s)) return {ok:false, err:'Неверный пароль'};
     store(KEY_SSN, name);
     return {ok:true, owner: !!a.owner};
   },
