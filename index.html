@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GTA Алекс — Все версии</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { min-height:100%; background:#07070a; font-family:"Arial Black", Impact, sans-serif;
+    color:#fff; overflow-x:hidden; }
+  body {
+    background:
+      radial-gradient(circle at 15% 0%, rgba(245,197,66,.10), transparent 45%),
+      radial-gradient(circle at 85% 10%, rgba(46,120,255,.12), transparent 45%),
+      radial-gradient(circle at 50% 100%, rgba(214,94,78,.10), transparent 55%),
+      #07070a;
+  }
+  .wrap { max-width:1240px; margin:0 auto; padding:34px 20px 70px; }
+  header { text-align:center; margin-bottom:10px; }
+  .logo .gta { font-size:clamp(52px,10vw,110px); letter-spacing:-4px; color:#f5c542; line-height:.9;
+    text-shadow:4px 4px 0 #000, 8px 8px 0 rgba(0,0,0,.5); font-style:italic; }
+  .logo .name { font-size:clamp(28px,6vw,66px); letter-spacing:8px; color:#fff;
+    text-shadow:3px 3px 0 #000, 6px 6px 0 rgba(214,94,78,.75); }
+  .tagline { margin-top:10px; font-size:12px; letter-spacing:6px; color:#8f9099; }
+  .today { margin-top:16px; display:inline-block; padding:8px 20px; border:2px solid #f5c542;
+    background:rgba(245,197,66,.08); color:#f5c542; font-size:13px; letter-spacing:2px;
+    font-family:monospace; border-radius:3px; }
+  .agebox { margin-top:20px; display:inline-block; padding:14px 26px; border:2px solid #2e78ff;
+    background:linear-gradient(180deg, rgba(46,120,255,.12), rgba(46,120,255,.04));
+    border-radius:6px; font-family:monospace; text-align:center; }
+  .agebirth { font-size:13px; letter-spacing:3px; color:#5c9cff; margin-bottom:8px; }
+  .ageval { font-size:clamp(17px,3vw,26px); font-weight:bold; color:#fff; letter-spacing:1px; }
+  .ageval b { color:#f5c542; }
+  .agecount { font-size:12px; letter-spacing:2px; color:#9dffb0; margin-top:8px; }
+  .agecount.lock { color:#ff9ac8; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(275px,1fr)); gap:20px; margin-top:38px; }
+  .card { position:relative; border:2px solid #26272e; background:linear-gradient(180deg,#14151b,#0c0d11);
+    border-radius:10px; overflow:hidden; display:flex; flex-direction:column;
+    transition:.16s transform, .16s box-shadow, .16s border-color; }
+  .card:hover { transform:translateY(-6px); border-color:#f5c542;
+    box-shadow:0 18px 40px rgba(0,0,0,.7), 0 0 0 1px rgba(245,197,66,.3); }
+  .thumb { height:132px; position:relative; overflow:hidden; }
+  .thumb .v { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:56px; font-style:italic; color:rgba(255,255,255,.94); letter-spacing:-2px;
+    text-shadow:3px 3px 0 rgba(0,0,0,.65); }
+  .t1 { background:linear-gradient(135deg,#4b5a3a,#2b3326 60%,#1a1e18); }
+  .t2 { background:linear-gradient(135deg,#101a3a,#070b1c 60%,#03040a); }
+  .t3 { background:linear-gradient(135deg,#8ec9ee,#5d93b8 55%,#3d6d8c); }
+  .t4 { background:linear-gradient(135deg,#4a5058,#2a2e34 60%,#14161a); }
+  .t5 { background:linear-gradient(135deg,#ffd07a,#ff9a5c 55%,#e0654a); }
+  .t6 { background:linear-gradient(135deg,#2b0f4a,#0d0722 55%,#05030f); }
+  .tsa { background:linear-gradient(135deg,#e6c67a,#c99a4e 55%,#8a6a30); }
+  .tsp { background:linear-gradient(135deg,#ff6fa5,#f5c542 55%,#5cd0ff); }
+  .thumb::after { content:''; position:absolute; inset:0;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,.14) 0 2px, transparent 2px 4px); opacity:.5; }
+  .badges { position:absolute; top:9px; left:9px; display:flex; gap:6px; z-index:2; }
+  .badge { font-size:10px; letter-spacing:1.5px; padding:4px 9px; border-radius:3px;
+    background:#000; border:1px solid #555; color:#ddd; font-family:monospace; }
+  .badge.new { background:#f5c542; color:#111; border-color:#000; font-weight:bold; }
+  .badge.beta { background:#ff4d4d; color:#fff; border-color:#000; }
+  .badge.only { background:#2e78ff; color:#fff; border-color:#000; }
+  .body { padding:16px 16px 18px; display:flex; flex-direction:column; gap:9px; flex:1; }
+  .title { font-size:21px; letter-spacing:.5px; }
+  .desc { font-size:12px; line-height:1.55; color:#a9aab3; font-family:monospace; min-height:56px; }
+  .meta { font-size:11px; color:#6e6f78; font-family:monospace; letter-spacing:1px; }
+  .play { margin-top:auto; padding:11px 0; font-size:16px; letter-spacing:3px; cursor:pointer;
+    background:linear-gradient(180deg,#ffd85c,#f0a51e); color:#111; border:2px solid #000;
+    box-shadow:0 4px 0 #7a4d05; font-family:inherit; transition:.08s; }
+  .play:hover { filter:brightness(1.08); }
+  .play:active { transform:translateY(3px); box-shadow:0 1px 0 #7a4d05; }
+  .play.blue { background:linear-gradient(180deg,#8fc2ff,#2e78ff); box-shadow:0 4px 0 #123a7a; color:#04102a; }
+  .card.locked { filter:grayscale(.85); opacity:.72; }
+  .card.locked:hover { transform:none; border-color:#444; box-shadow:none; }
+  .lockline { margin-top:2px; padding:11px 0; text-align:center; font-size:13px; letter-spacing:2px;
+    border:2px dashed #555; color:#9a9aa2; font-family:monospace; }
+  footer { margin-top:46px; text-align:center; font-size:11px; color:#5c5d66; letter-spacing:2px;
+    font-family:monospace; line-height:1.9; }
+  a { color:#5c9cff; text-decoration:none; }
+  /* ===== аккаунты ===== */
+  .acc { margin-top:24px; border:2px solid #26272e; border-radius:10px; padding:14px 16px;
+    background:linear-gradient(180deg,#14151b,#0c0d11); font-family:monospace; }
+  .accHead { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .accTitle { font-size:15px; letter-spacing:3px; color:#f5c542; font-family:"Arial Black",Impact,sans-serif; }
+  .accWho { font-size:13px; color:#9dffb0; letter-spacing:1px; }
+  .accOwner { font-size:12px; letter-spacing:1px; padding:3px 9px; border-radius:3px;
+    background:#f5c542; color:#111; border:1px solid #000; font-weight:bold; }
+  .accForm { display:flex; gap:8px; margin-top:11px; flex-wrap:wrap; }
+  .accForm input { flex:1 1 150px; min-width:130px; padding:9px 11px; background:#0a0b0f;
+    border:1px solid #3a3b44; border-radius:5px; color:#fff; font-family:monospace; font-size:13px; }
+  .accForm input:focus { outline:none; border-color:#f5c542; }
+  .accBtn { padding:9px 16px; font-size:13px; letter-spacing:2px; cursor:pointer;
+    background:linear-gradient(180deg,#ffd85c,#f0a51e); color:#111; border:2px solid #000;
+    box-shadow:0 3px 0 #7a4d05; font-family:inherit; transition:.08s; }
+  .accBtn:active { transform:translateY(2px); box-shadow:0 1px 0 #7a4d05; }
+  .accBtn.alt { background:linear-gradient(180deg,#8fc2ff,#2e78ff); box-shadow:0 3px 0 #123a7a; color:#04102a; }
+  .accBtn.out { background:linear-gradient(180deg,#ff9a8a,#e0453a); box-shadow:0 3px 0 #6b140c; color:#fff; }
+  .accMsg { margin-top:9px; font-size:12px; min-height:16px; color:#ff8a7a; letter-spacing:1px; }
+  .accMsg.ok { color:#9dffb0; }
+  .accHint { font-size:11px; color:#6e6f78; letter-spacing:1px; margin-top:3px; line-height:1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">
+      <div class="gta">GTA</div>
+      <div class="name">АЛЕКС</div>
+    </div>
+    <div class="tagline">ALEX CITY • ВСЕ ВЕРСИИ ИГРЫ</div>
+    <div class="agebox" id="agebox">
+      <div class="agebirth" id="birthLine">—</div>
+      <div class="ageval" id="ageLine">—</div>
+      <div class="agecount" id="countLine">—</div>
+    </div>
+  </header>
+
+  <!-- ===== АККАУНТЫ ===== -->
+  <div class="acc" id="accBox">
+    <div class="accHead">
+      <span class="accTitle">👤 АККАУНТЫ</span>
+      <span class="accWho" id="accWho">не вошли</span>
+      <span class="accOwner" id="accOwner" style="display:none">👑 ВЛАДЕЛЕЦ</span>
+    </div>
+    <div class="accForm" id="accForm">
+      <input id="accName" placeholder="Имя аккаунта" maxlength="20" autocomplete="off">
+      <input id="accPass" type="password" placeholder="Пароль" maxlength="40" autocomplete="off">
+      <button class="accBtn" id="btnLogin">ВОЙТИ</button>
+      <button class="accBtn alt" id="btnReg">РЕГИСТРАЦИЯ</button>
+      <button class="accBtn out" id="btnLogout" style="display:none">ВЫЙТИ</button>
+    </div>
+    <div class="accMsg" id="accMsg"></div>
+    <div class="accHint" id="accHint">Аккаунты хранятся только на этом компьютере. Владелец получает бессмертие, бесконечные патроны и всё оружие.</div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <footer>
+    ИГРА РОДИЛАСЬ 4 ОКТЯБРЯ 2026 • ВОЗРАСТ СЧИТАЕТСЯ АВТОМАТИЧЕСКИ, КАЖДЫЙ ГОД САМ<br>
+    «СПЕЦИАЛ» ВЫХОДИТ ТОЛЬКО 4 ОКТЯБРЯ, НАЧИНАЯ С 2027 ГОДА • КЛАССИКА (1–2) — ВИД СВЕРХУ, ВЕРСИИ 3–6 И SA — 3D
+  </footer>
+</div>
+
+<script src="accounts.js?v=4"></script>
+<script>
+(function(){
+"use strict";
+const grid = document.getElementById('grid');
+const pad = n => (n < 10 ? '0' : '') + n;
+
+/* ===== ДЕНЬ РОЖДЕНИЯ ИГРЫ И ЕЁ ВОЗРАСТ (считаются сами, каждый год) ===== */
+const GAME_CREATED = new Date(2026, 9, 4, 0, 0, 0);   // игра родилась 4 октября 2026
+const SPECIAL_FIRST_YEAR = 2027;                        // «Специал» выходит с 4 октября 2027
+
+function plural(n, one, few, many){
+  const a = Math.abs(n) % 100, b = a % 10;
+  if(a > 10 && a < 20) return many;
+  if(b === 1) return one;
+  if(b >= 2 && b <= 4) return few;
+  return many;
+}
+function ageParts(){
+  const from = GAME_CREATED, to = new Date();
+  let y = to.getFullYear() - from.getFullYear();
+  let m = to.getMonth() - from.getMonth();
+  let d = to.getDate() - from.getDate();
+  let h = to.getHours() - from.getHours();
+  let mi = to.getMinutes() - from.getMinutes();
+  let s = to.getSeconds() - from.getSeconds();
+  if(s < 0){ s += 60; mi--; }
+  if(mi < 0){ mi += 60; h--; }
+  if(h < 0){ h += 24; d--; }
+  if(d < 0){ d += new Date(to.getFullYear(), to.getMonth(), 0).getDate(); m--; }
+  if(m < 0){ m += 12; y--; }
+  return {y:Math.max(0,y), m:Math.max(0,m), d:Math.max(0,d),
+          h:Math.max(0,h), mi:Math.max(0,mi), s:Math.max(0,s)};
+}
+function isBirthdayNow(n){ n = n || new Date(); return n.getMonth() === 9 && n.getDate() === 4; }
+function specialOpen(){
+  const n = new Date();
+  return n.getFullYear() >= SPECIAL_FIRST_YEAR && isBirthdayNow(n);
+}
+function specialUnlockDate(){
+  // следующая дата, когда «Специал» откроется (или сегодняшняя, если открыт)
+  const n = new Date();
+  let y = Math.max(n.getFullYear(), SPECIAL_FIRST_YEAR);
+  let b = new Date(y, 9, 4, 0, 0, 0);
+  if(b.getTime() <= n.getTime()) b = new Date(y + 1, 9, 4, 0, 0, 0);
+  return b;
+}
+function tickAge(){
+  const now = new Date();
+  const a = ageParts();
+  document.getElementById('birthLine').textContent =
+    '🎂 ДЕНЬ РОЖДЕНИЯ ИГРЫ — 4 ОКТЯБРЯ ' + GAME_CREATED.getFullYear() + ' • СЕЙЧАС ' + now.getFullYear() + ' ГОД';
+  document.getElementById('ageLine').innerHTML =
+    'НАША КРЕАЦИЯ: <b>' + a.y + '</b> ' + plural(a.y, 'год', 'года', 'лет') +
+    ' <b>' + a.m + '</b> ' + plural(a.m, 'месяц', 'месяца', 'месяцев') +
+    ' <b>' + a.d + '</b> ' + plural(a.d, 'день', 'дня', 'дней') +
+    ' <b>' + a.h + '</b> ' + plural(a.h, 'час', 'часа', 'часов') +
+    ' <b>' + a.mi + '</b> ' + plural(a.mi, 'минута', 'минуты', 'минут') +
+    ' <b>' + a.s + '</b> ' + plural(a.s, 'секунда', 'секунды', 'секунд');
+  const el = document.getElementById('countLine');
+  if(specialOpen()){
+    const end = new Date(now.getFullYear(), 9, 4, 23, 59, 59);
+    const left = Math.max(0, end - now);
+    const h = Math.floor(left / 3600000), mi = Math.floor(left / 60000) % 60, s = Math.floor(left/1000) % 60;
+    el.className = 'agecount';
+    el.textContent = '🎉 СЕГОДНЯ ДЕНЬ РОЖДЕНИЯ! «СПЕЦИАЛ» ОТКРЫТ • ЗАКРОЕТСЯ ЧЕРЕЗ ' +
+      pad(h) + ':' + pad(mi) + ':' + pad(s);
+  } else {
+    const b = specialUnlockDate();
+    const ms = Math.max(0, b - now);
+    const days = Math.floor(ms / 86400000);
+    const dh = Math.floor(ms / 3600000) % 24, dm = Math.floor(ms / 60000) % 60;
+    el.className = 'agecount lock';
+    el.textContent = '🔒 «СПЕЦИАЛ» ОТКРОЕТСЯ ' + pad(b.getDate()) + '.' + pad(b.getMonth()+1) + '.' +
+      b.getFullYear() + ' • ЧЕРЕЗ ' + days + ' ' + plural(days, 'день', 'дня', 'дней') +
+      ' ' + pad(dh) + ' ч ' + pad(dm) + ' мин';
+  }
+}
+tickAge();
+setInterval(tickAge, 1000);
+
+const SPECIAL_OPEN = specialOpen();
+
+const VERSIONS = [
+  {n:'1', cls:'t1', v:'GTA АЛЕКС', title:'GTA АЛЕКС • ПЛОСКИЙ 2D',
+   desc:'Самая первая — вид сверху, как 2D: кварталы, трафик, розыск, простые миссии. Ничего лишнего, только старая добрая аркада.',
+   meta:'РЕЖИМ: ВИД СВЕРХУ 2D • ЛЕГКО', href:'classic.html?e=1', badge:{t:'КЛАССИКА', c:''}},
+  {n:'2', cls:'t2', v:'GTA АЛЕКС 2', title:'GTA АЛЕКС 2 • ВЫЖИВАНИЕ',
+   desc:'Тот же вид сверху 2D, но вечная ночь: видно только кругом, патронов почти нет — они падают с убитых, враги бьют вдвое сильнее.',
+   meta:'РЕЖИМ: 2D • НОЧЬ • ТЬМА • ХАРДКОР', href:'classic.html?e=2', badge:{t:'ХАРДКОР', c:'new'}},
+  {n:'3', cls:'t3', v:'GTA АЛЕКС 3', title:'GTA АЛЕКС 3',
+   desc:'Переход в 3D, вид от ТРЕТЬЕГО ЛИЦА. Полная аркада. Плюс телефон: сообщения, звонки, выбор заданий и локальная сеть на два окна.',
+   meta:'3D • ТРЕТЬЕ ЛИЦО • АРКАДА • ТЕЛЕФОН • СЕТЬ', href:'3d.html?e=3'},
+  {n:'4', cls:'t4', v:'GTA АЛЕКС 4', title:'GTA АЛЕКС 4 • КРИМИНАЛ',
+   desc:'Вид от третьего лица. Дождь и туман, строгая полиция, тайные сделки, ночной угон, киллеры убивают прохожих. Физика тяжелее аркадной.',
+   meta:'3D • ТРЕТЬЕ ЛИЦО • СДЕЛКИ • КИЛЛЕРЫ', href:'3d.html?e=4', badge:{t:'ТЁМНАЯ СТОРОНА', c:''}},
+  {n:'5', cls:'t5', v:'GTA АЛЕКС 5', title:'GTA АЛЕКС 5 • ГОНКИ',
+   desc:'Вид ОТ ПЕРВОГО ЛИЦА и максимум реализма: накат, торможение, недохват руля на скорости. Плюс гонки, трамплины, спидометр и большие призовые.',
+   meta:'3D • ПЕРВОЕ ЛИЦО • МАКС. РЕАЛИЗМ • $$$', href:'3d.html?e=5', badge:{t:'РЕАЛИЗМ', c:'new'}},
+  {n:'6', cls:'t6', v:'GTA АЛЕКС 6', title:'GTA АЛЕКС 6 • ВАЙС-СИТИ',
+   desc:'Вид от первого лица и максимум реализма. Пляж, океан, катера, спорткары, неон. И кнопка ПОДДЕРЖКА в телефоне — пиши автору. Это бета.',
+   meta:'3D • ПЕРВОЕ ЛИЦО • ПЛЯЖ • ПОДДЕРЖКА • BETA', href:'3d.html?e=6', badge:{t:'BETA', c:'beta'}},
+  {n:'sa', cls:'tsa', v:'GTA АЛЕКС: SAN ANDREAS', title:'SAN ANDREAS • БАНДЫ И СВОБОДА',
+   desc:'Такого нет даже в настоящем SA: ГАРАЖ запоминает твою машину, клавиша T зовёт ГЕРОЕВ (ДЕКС, МЕЙДЖОР, КРЭШ), Y меняет ПРИЧЁСКУ, 4 района и война банд.',
+   meta:'3D • ГАРАЖ • ГЕРОИ • ПРИЧЁСКИ • БАНДЫ', href:'3d.html?e=sa', badge:{t:'ЭКСКЛЮЗИВ', c:''}},
+  {n:'special', cls:'tsp', v:'GTA АЛЕКС: СПЕЦИАЛ', title:'СПЕЦИАЛ',
+   desc:'Праздничная версия ко дню рождения: конфетти, подарки, салюты и деньги с неба, розыск не растёт. Выходит только 4 октября, начиная с 2027 года.',
+   meta:'3D • ЭКСКЛЮЗИВ 4 ОКТЯБРЯ', href:'3d.html?e=special', badge:{t:'4 ОКТЯБРЯ', c:'only'}, special:true}
+];
+
+function card(v){
+  const locked = v.special && !SPECIAL_OPEN;
+  const el = document.createElement('div');
+  el.className = 'card' + (locked ? ' locked' : '');
+  const badge = v.badge ? '<div class="badges"><span class="badge ' + v.badge.c + '">' + v.badge.t + '</span></div>' : '';
+  let lockHtml = '';
+  if(locked){
+    const b = specialUnlockDate();
+    lockHtml = '<div class="lockline">🔒 ТОЛЬКО 4 ОКТЯБРЯ ' + b.getFullYear() + '</div>';
+  }
+  el.innerHTML =
+    '<div class="thumb ' + v.cls + '">' + badge + '<div class="v">' + v.v.replace('GTA АЛЕКС', 'GTA') + '</div></div>' +
+    '<div class="body">' +
+      '<div class="title">' + v.title + '</div>' +
+      '<div class="desc">' + v.desc + '</div>' +
+      '<div class="meta">' + v.meta + '</div>' +
+      (locked ? lockHtml
+              : '<button class="play' + (v.special ? '' : (v.n === '6' ? ' blue' : '')) + '">ИГРАТЬ</button>') +
+    '</div>';
+  if(!locked){
+    const b = el.querySelector('.play');
+    if(b) b.addEventListener('click', () => { location.href = v.href; });
+  }
+  return el;
+}
+VERSIONS.forEach(v => grid.appendChild(card(v)));
+
+/* ===== ПАНЕЛЬ АККАУНТОВ ===== */
+const $ = id => document.getElementById(id);
+function msg(text, ok){
+  const el = $('accMsg');
+  el.textContent = text || '';
+  el.className = 'accMsg' + (ok ? ' ok' : '');
+}
+function refreshAcc(){
+  const c = window.GA && GA.current();
+  if(c){
+    $('accWho').textContent = 'вошли: ' + c.name + ' • $' + (c.money||0) + ' • убийств: ' + (c.kills||0);
+    $('accOwner').style.display = c.owner ? '' : 'none';
+    $('btnLogout').style.display = '';
+    $('accName').style.display = 'none';
+    $('accPass').style.display = 'none';
+    $('btnLogin').style.display = 'none';
+    $('btnReg').style.display = 'none';
+    $('accHint').textContent = c.owner
+      ? '👑 Ты ВЛАДЕЛЕЦ: бессмертие, бесконечные патроны, всё оружие и лучшая техника во всех версиях.'
+      : 'Прогресс этого аккаунта сохраняется автоматически. Смена аккаунта — кнопка ВЫЙТИ.';
+  } else {
+    $('accWho').textContent = 'не вошли';
+    $('accOwner').style.display = 'none';
+    $('btnLogout').style.display = 'none';
+    $('accName').style.display = '';
+    $('accPass').style.display = '';
+    $('btnLogin').style.display = '';
+    $('btnReg').style.display = '';
+    $('accHint').textContent = 'Аккаунты хранятся только на этом компьютере. Владелец получает бессмертие, бесконечные патроны и всё оружие.';
+  }
+}
+$('btnLogin').addEventListener('click', () => {
+  const r = GA.login($('accName').value, $('accPass').value);
+  if(r.ok){ msg(r.owner ? '👑 С возвращением, ВЛАДЕЛЕЦ!' : 'Вход выполнен', true); refreshAcc(); }
+  else msg(r.err);
+});
+$('btnReg').addEventListener('click', () => {
+  const r = GA.register($('accName').value, $('accPass').value, $('accPass').value);
+  if(r.ok){ msg(r.owner ? '👑 Аккаунт владельца создан!' : 'Аккаунт создан — вход выполнен', true); refreshAcc(); }
+  else msg(r.err);
+});
+$('btnLogout').addEventListener('click', () => { GA.logout(); msg('Вы вышли из аккаунта', true); refreshAcc(); });
+$('accPass').addEventListener('keydown', e => { if(e.key === 'Enter') $('btnLogin').click(); });
+refreshAcc();
+})();
+</script>
+</body>
+</html>
