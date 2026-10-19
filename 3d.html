@@ -365,7 +365,9 @@ function specialLockInfo(){
   if(b.getTime() <= n.getTime()) b = new Date(y + 1, 9, 4, 0, 0, 0);
   return {b, days: Math.ceil((b - n) / 86400000)};
 }
-const SPECIAL_LOCKED = (E === 'special' && !specialIsOpen());
+/* Проверяем доступность В МОМЕНТ действия, а не при загрузке:
+   владелец мог зайти после загрузки страницы или открыть её прямой ссылкой. */
+function specialLocked(){ return E === 'special' && !specialIsOpen(); }
 
 /* ============================== МИР (1 юнит = 1 метр) ============================== */
 const GRID = 10, CELL = 46, ROAD = 11.2, LANE = 3, WALK = 2.6, WORLD = GRID * CELL;
@@ -5183,7 +5185,7 @@ function boot(){
         document.getElementById('load').style.display = 'none';
         document.getElementById('menu').style.display = 'flex';
         S.state = 'menu';
-        if(SPECIAL_LOCKED){
+        if(specialLocked()){
           const li = specialLockInfo();
           const btn = document.getElementById('start');
           btn.textContent = '🔒 ЗАКРЫТО ДО 4 ОКТЯБРЯ ' + li.b.getFullYear();
@@ -5194,6 +5196,10 @@ function boot(){
             el.textContent = 'ВЕРСИЯ «СПЕЦИАЛ» ВЫХОДИТ ТОЛЬКО 4 ОКТЯБРЯ • ЧЕРЕЗ ' +
               li.days + ' ДН. ДЕНЬ РОЖДЕНИЯ ИГРЫ — 4 ОКТЯБРЯ 2026';
           });
+        } else if(E === 'special'){
+          // владелец: кнопка всегда рабочая
+          const btn = document.getElementById('start');
+          if(btn){ btn.disabled = false; btn.style.opacity = 1; btn.style.cursor = ''; }
         }
       }, 350);
     }
@@ -5201,7 +5207,7 @@ function boot(){
 }
 document.getElementById('to2d').addEventListener('click', () => { location.href = 'index.html'; });
 document.getElementById('start').addEventListener('click', () => {
-  if(SPECIAL_LOCKED){
+  if(specialLocked()){
     const li = specialLockInfo();
     alert('«GTA Алекс: Специал» выходит только 4 октября (начиная с 2027 года).\n' +
       'Сегодня ' + new Date().toLocaleDateString('ru-RU') + '.\n' +

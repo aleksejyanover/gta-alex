@@ -205,12 +205,17 @@ function tickAge(){
     ' <b>' + a.s + '</b> ' + plural(a.s, 'секунда', 'секунды', 'секунд');
   const el = document.getElementById('countLine');
   if(specialOpen()){
-    const end = new Date(now.getFullYear(), 9, 4, 23, 59, 59);
-    const left = Math.max(0, end - now);
-    const h = Math.floor(left / 3600000), mi = Math.floor(left / 60000) % 60, s = Math.floor(left/1000) % 60;
-    el.className = 'agecount';
-    el.textContent = '🎉 СЕГОДНЯ ДЕНЬ РОЖДЕНИЯ! «СПЕЦИАЛ» ОТКРЫТ • ЗАКРОЕТСЯ ЧЕРЕЗ ' +
-      pad(h) + ':' + pad(mi) + ':' + pad(s);
+    if(isOwnerNow()){
+      el.className = 'agecount';
+      el.textContent = '👑 ВЛАДЕЛЕЦ: «СПЕЦИАЛ» ОТКРЫТ ДЛЯ ТЕБЯ ВСЕГДА';
+    } else {
+      const end = new Date(now.getFullYear(), 9, 4, 23, 59, 59);
+      const left = Math.max(0, end - now);
+      const h = Math.floor(left / 3600000), mi = Math.floor(left / 60000) % 60, s = Math.floor(left/1000) % 60;
+      el.className = 'agecount';
+      el.textContent = '🎉 СЕГОДНЯ ДЕНЬ РОЖДЕНИЯ! «СПЕЦИАЛ» ОТКРЫТ • ЗАКРОЕТСЯ ЧЕРЕЗ ' +
+        pad(h) + ':' + pad(mi) + ':' + pad(s);
+    }
   } else {
     const b = specialUnlockDate();
     const ms = Math.max(0, b - now);
@@ -224,8 +229,6 @@ function tickAge(){
 }
 tickAge();
 setInterval(tickAge, 1000);
-
-const SPECIAL_OPEN = specialOpen();
 
 const VERSIONS = [
   {n:'1', cls:'t1', v:'GTA АЛЕКС', title:'GTA АЛЕКС • ПЛОСКИЙ 2D',
@@ -255,10 +258,16 @@ const VERSIONS = [
 ];
 
 function card(v){
-  const locked = v.special && !SPECIAL_OPEN;
+  const locked = v.special && !specialOpen();   // доступность проверяется «здесь и сейчас»
+  const forOwner = !!(v.special && isOwnerNow());
+  const desc = forOwner
+    ? 'Твоя личная версия: вид от первого лица, пляж и море, гонки, война банд, гараж, киллеры, полиция, дроны и танки. Графика лучше, чем в GTA 6. Открыта тебе навсегда — в любой день.'
+    : v.desc;
+  const meta = forOwner ? '3D • ВЛАДЕЛЕЦ • ВСЁ ЛУЧШЕЕ СРАЗУ' : v.meta;
+  const badgeTxt = forOwner ? '👑 ТОЛЬКО ТЕБЕ' : (v.badge ? v.badge.t : '');
   const el = document.createElement('div');
   el.className = 'card' + (locked ? ' locked' : '');
-  const badge = v.badge ? '<div class="badges"><span class="badge ' + v.badge.c + '">' + v.badge.t + '</span></div>' : '';
+  const badge = v.badge ? '<div class="badges"><span class="badge ' + v.badge.c + '">' + badgeTxt + '</span></div>' : '';
   let lockHtml = '';
   if(locked){
     const b = specialUnlockDate();
@@ -268,8 +277,8 @@ function card(v){
     '<div class="thumb ' + v.cls + '">' + badge + '<div class="v">' + v.v.replace('GTA АЛЕКС', 'GTA') + '</div></div>' +
     '<div class="body">' +
       '<div class="title">' + v.title + '</div>' +
-      '<div class="desc">' + v.desc + '</div>' +
-      '<div class="meta">' + v.meta + '</div>' +
+      '<div class="desc">' + desc + '</div>' +
+      '<div class="meta">' + meta + '</div>' +
       (locked ? lockHtml
               : '<button class="play' + (v.special ? '' : (v.n === '6' ? ' blue' : '')) + '">ИГРАТЬ</button>') +
     '</div>';
@@ -279,7 +288,13 @@ function card(v){
   }
   return el;
 }
-VERSIONS.forEach(v => grid.appendChild(card(v)));
+/* сетка версий перестраивается после входа/выхода — так «Специал» сразу
+   разблокируется (или снова закроется) для владельца */
+function renderCards(){
+  grid.innerHTML = '';
+  VERSIONS.forEach(v => grid.appendChild(card(v)));
+}
+renderCards();
 
 /* ===== ПАНЕЛЬ АККАУНТОВ ===== */
 const $ = id => document.getElementById(id);
@@ -311,6 +326,8 @@ function refreshAcc(){
     $('btnReg').style.display = '';
     $('accHint').textContent = 'Аккаунты хранятся только на этом компьютере. Владелец получает бессмертие, бесконечные патроны и всё оружие.';
   }
+  if(typeof renderCards === 'function') renderCards();   // «Специал» открывается сразу после входа
+  if(typeof tickAge === 'function') tickAge();           // и надпись сверху тоже
 }
 $('btnLogin').addEventListener('click', () => {
   const r = GA.login($('accName').value, $('accPass').value);
