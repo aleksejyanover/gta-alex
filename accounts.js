@@ -46,6 +46,26 @@ function saveAll(a){ store(KEY_ACC, JSON.stringify(a)); }
    ============================================================ */
 const OWNER = { name: 'alexis', pass: '676752524242' };
 
+/* --- список достижений (общий для лаунчера и игры) --- */
+const ACH = [
+  {id:'first_blood', name:'ПЕРВАЯ КРОВЬ',    desc:'Убей первого противника'},
+  {id:'kill100',     name:'ХИЩНИК',          desc:'100 убийств'},
+  {id:'kill500',     name:'ГРОМ',            desc:'500 убийств'},
+  {id:'rich',        name:'БОГАЧ',           desc:'Накопи $50 000'},
+  {id:'tycoon',      name:'ПРОМЫШЛЕННИК',    desc:'Накопи $500 000'},
+  {id:'home',        name:'СВОЙ УГОЛ',       desc:'Купи свой дом'},
+  {id:'allbiz',      name:'ВЛАДЕЛЕЦ ГОРОДА', desc:'Купи все компании'},
+  {id:'moto',        name:'МОТОЦИКЛИСТ',     desc:'Укради и прокатись на мотоцикле'},
+  {id:'pilot',       name:'ПИЛОТ',           desc:'Взлети на вертолёте'},
+  {id:'wanted5',     name:'РАЗЫСКИВАЕМЫЙ',   desc:'Доберись до 5 звёзд розыска'},
+  {id:'milbase',     name:'ВОЕНБАЗА',        desc:'Доберись до военной базы'},
+  {id:'station',     name:'УЧАСТОК',         desc:'Зайди в полицейский участок'},
+  {id:'stunt',       name:'ВЫСОТА',          desc:'Прыгни с трамплина выше 4 метров'},
+  {id:'miles',       name:'ПУТЕШЕСТВЕННИК',  desc:'Проехать 100 км по городу'},
+  {id:'worker',      name:'ДЕЛОВОЙ',         desc:'Выполни 20 миссий'},
+  {id:'interior',    name:'ЗА ГОСТЕПРИИМНЫМИ ДВЕРЯМИ', desc:'Зайди в чужое жильё и обыщи его'}
+];
+
 function norm(n){ return String(n || '').trim(); }
 
 const GA = {
@@ -148,6 +168,48 @@ const GA = {
     return {money:a.money||0, kills:a.kills||0, level:a.level||1,
             arms:a.arms, owned:a.owned, wpn:a.wpn||0, hp:a.hp||100, when:a.when||0};
   },
+
+  /* --- СТАТИСТИКА: накапливается на аккаунте и не теряется --- */
+  stat(){
+    const all = loadAll(), n = norm(read(KEY_SSN));
+    if(!n || !all[n]) return {};
+    return Object.assign({}, all[n].stat || {});
+  },
+  addStat(k, v){
+    const all = loadAll(), n = norm(read(KEY_SSN));
+    if(!n || !all[n]) return null;
+    const a = all[n]; if(!a.stat) a.stat = {};
+    a.stat[k] = (a.stat[k] || 0) + (v === undefined ? 1 : v);
+    saveAll(all); return a.stat[k];
+  },
+  setStat(k, v){
+    const all = loadAll(), n = norm(read(KEY_SSN));
+    if(!n || !all[n]) return null;
+    const a = all[n]; if(!a.stat) a.stat = {};
+    a.stat[k] = v; saveAll(all); return v;
+  },
+  /* «рекорд» — запоминается только лучшее значение */
+  bestStat(k, v){
+    const all = loadAll(), n = norm(read(KEY_SSN));
+    if(!n || !all[n]) return null;
+    const a = all[n]; if(!a.stat) a.stat = {};
+    if(a.stat[k] === undefined || v > a.stat[k]) a.stat[k] = v;
+    saveAll(all); return a.stat[k];
+  },
+  /* --- достижения: true = открыто впервые --- */
+  unlock(id){
+    const all = loadAll(), n = norm(read(KEY_SSN));
+    if(!n || !all[n]) return false;
+    const a = all[n]; if(!a.ach) a.ach = {};
+    if(a.ach[id]) return false;
+    a.ach[id] = Date.now(); saveAll(all); return true;
+  },
+  unlocked(){
+    const all = loadAll(), n = norm(read(KEY_SSN));
+    if(!n || !all[n]) return {};
+    return Object.assign({}, all[n].ach || {});
+  },
+  ACH: ACH,
 
   /* --- привилегии владельца --- */
   perks(){

@@ -1582,6 +1582,84 @@ function makeCar(x, z, angle, type, color){
     driver:false, flash:0, roll:0, steer:0, nitro:false, wreckT:0
   };
 }
+/* ====================== МОТОЦИКЛЫ ======================
+   Мотоцикл устроен как машина (те же поля), поэтому работает
+   вся логика дорог, столкновений, урона и миникарты без переделок. */
+function makeBike(x, z, angle, color, type){
+  const col = color !== undefined ? color :
+    pick([0xc02020, 0x2020c0, 0x14161a, 0xd8d8d8, 0x1f7a48, 0xd07010, 0x6a2fa0]);
+  const g = new THREE.Group();
+  const bodyMat = HQ
+    ? new THREE.MeshPhysicalMaterial({color:col, metalness:0.7, roughness:0.26,
+        clearcoat:1.0, clearcoatRoughness:0.07, envMapIntensity:1.3})
+    : new THREE.MeshPhongMaterial({color:col, shininess:95, specular:0x666666});
+  const dark   = new THREE.MeshPhongMaterial({color:0x14161a, shininess:40});
+  const chrome = new THREE.MeshPhongMaterial({color:0xc8ced6, shininess:120, specular:0xffffff});
+  const put = (geo, mat, px, py, pz, rx, ry, rz) => {
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(px, py, pz);
+    if(rx) m.rotation.x = rx; if(ry) m.rotation.y = ry; if(rz) m.rotation.z = rz;
+    m.castShadow = true; g.add(m); return m;
+  };
+  /* колёса: ось вдоль X, поэтому крутятся вокруг Z (как у машины) */
+  const wheels = [];
+  const wgeo = new THREE.CylinderGeometry(0.56, 0.56, 0.24, 16);
+  for(const wx of [[1.18, 0], [-1.02, 0]]){
+    const pivot = new THREE.Group();                    // поворотная группа
+    const w = new THREE.Mesh(wgeo, dark);
+    w.rotation.z = Math.PI / 2;                         // ось колеса — вдоль X
+    w.castShadow = true;
+    pivot.add(w); pivot.position.set(wx[0], 0.56, wx[1]);
+    g.add(pivot); wheels.push(pivot);
+  }
+  put(new THREE.BoxGeometry(1.5, 0.22, 0.26), dark,   0.05, 0.72, 0);       // рама
+  put(new THREE.BoxGeometry(0.85, 0.42, 0.62), bodyMat, 0.42, 0.95, 0);      // бак
+  put(new THREE.BoxGeometry(0.95, 0.2, 0.42), dark,   -0.45, 1.0, 0);        // сиденье
+  put(new THREE.BoxGeometry(0.3, 0.5, 0.2), bodyMat,  -0.92, 1.12, 0);       // задняя часть
+  put(new THREE.BoxGeometry(0.12, 0.1, 1.0), chrome,  1.16, 1.18, 0);        // руль
+  put(new THREE.BoxGeometry(0.7, 0.12, 0.12), chrome, 1.0, 0.78, 0.16);      // вилка
+  put(new THREE.BoxGeometry(0.7, 0.12, 0.12), chrome, 1.0, 0.78, -0.16);
+  put(new THREE.CylinderGeometry(0.09, 0.13, 1.5, 8), chrome, -0.15, 0.6, 0.28,
+      0, 0, Math.PI/2);                                                       // выхлоп
+  const hl = put(new THREE.BoxGeometry(0.14, 0.26, 0.26),
+    new THREE.MeshBasicMaterial({color:0xfff6d0}), 1.3, 1.06, 0);
+  const tl = put(new THREE.BoxGeometry(0.12, 0.2, 0.3),
+    new THREE.MeshBasicMaterial({color:0xd21f1f}), -1.06, 1.14, 0);
+  /* фара и световое пятно (днём гаснут, как у машины) */
+  const beam = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 13),
+    new THREE.MeshBasicMaterial({map:beamTex, transparent:true, opacity:0, depthWrite:false,
+      blending:THREE.AdditiveBlending, color:0xfff4d0}));
+  beam.rotation.x = -Math.PI/2; beam.rotation.z = Math.PI/2;
+  beam.position.set(7.5, 0.07, 0); g.add(beam);
+  const pool = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 4.6),
+    new THREE.MeshBasicMaterial({map:glowSprite, transparent:true, opacity:0, depthWrite:false,
+      blending:THREE.AdditiveBlending, color:0xfff0c0}));
+  pool.rotation.x = -Math.PI/2; pool.position.set(2.4, 0.06, 0); g.add(pool);
+  g.position.set(x, 0, z); g.rotation.y = -angle;
+  scene.add(g);
+  return {
+    x, z, angle, speed:0, type: type || 'parked', color: col, group: g,
+    body: g, cabin: null, nose: null, wheels, beam, pool, lightbar: null,
+    bodyMat, hl, tl, r: 1.15, hp: 60, max: 34,
+    boat: false, sport: false, bike: true, rider: null,
+    airH:0, vy:0, airborne:false,
+    ai:{axis:'h', dir:1, road:0}, fireCd: rand(1,3), stuck:0, dead:false,
+    driver:false, flash:0, roll:0, steer:0, nitro:false, wreckT:0
+  };
+}
+/* наездник: сидит и слегка наклоняется вперёд */
+function bikeRider(b){
+  const h = makeHuman(pick([0x2a2f3a, 0x5a2020, 0x20402a, 0x3a2a50, 0x6a5020]),
+                      pick([0xf0c9a6, 0xd9a878, 0xa9744a]));
+  h.g.scale.setScalar(0.92);
+  h.g.position.set(-0.15, 0.02, 0);
+  h.g.rotation.x = 0.32;                       // наклон вперёд
+  h.legL.rotation.z = 0.8; h.legR.rotation.z = 0.8;
+  h.armL.rotation.z = -0.9; h.armR.rotation.z = -0.9;
+  b.group.add(h.g);
+  b.rider = h;
+  return h;
+}
 function randomRoadPoint(away){
   for(let i = 0; i < 30; i++){
     const vert = Math.random() < 0.5, idx = randi(0, GRID);
@@ -1618,6 +1696,34 @@ function spawnTraffic(){
     cars.push(c);
   }
 }
+/* --- мотоциклы: часть ездит с байкерами, часть стоит на обочине --- */
+function spawnBikes(){
+  const nRide = 3, nPark = 7;
+  for(let i = 0; i < nRide; i++){
+    const p = randomRoadPoint(28);
+    const vert = Math.abs(((p.x % CELL) + CELL) % CELL) < 1;
+    const dir = Math.random() < 0.5 ? 1 : -1;
+    const b = makeBike(p.x, p.z, vert ? (dir > 0 ? Math.PI/2 : -Math.PI/2) : (dir > 0 ? 0 : Math.PI), undefined, 'bike');
+    b.ai.axis = vert ? 'v' : 'h'; b.ai.dir = dir;
+    b.ai.road = vert ? Math.round(p.x / CELL) : Math.round(p.z / CELL);
+    b.speed = rand(16, 24); b.max = 36;
+    bikeRider(b);
+    cars.push(b);
+  }
+  for(let i = 0; i < nPark; i++){
+    const p = randomRoadPoint(10);
+    const side = Math.random() < 0.5 ? 1 : -1;
+    const vert = Math.abs(((p.x % CELL) + CELL) % CELL) < 1;
+    const x = vert ? p.x + side * (ROAD/2 - 1.3) : p.x;
+    const z = vert ? p.z : p.z + side * (ROAD/2 - 1.3);
+    const b = makeBike(x, z, vert ? (Math.random() < 0.5 ? Math.PI/2 : -Math.PI/2)
+                                   : (Math.random() < 0.5 ? 0 : Math.PI));
+    b.ai.axis = vert ? 'v' : 'h'; b.ai.dir = side;
+    b.ai.road = vert ? Math.round(p.x / CELL) : Math.round(p.z / CELL);
+    cars.push(b);
+  }
+}
+
 function spawnCop(hunt){
   // наряд за бандитом выездает РЯДОМ с ним, а не к игроку
   let p;
@@ -2434,6 +2540,18 @@ function districtAt(x, z){
   return null;
 }
 const ALLY_CLOTH = 0x2fbf5f, RIVAL_CLOTH = 0xd63a3a;
+/* NPC в точке (бегущий свидетель — например, байкер после угона) */
+function spawnFleePed(x, z, cloth, skin){
+  const c = cloth !== undefined ? cloth : pick(PED_CLOTH), s = skin !== undefined ? skin : pick(PED_SKIN);
+  const h = makeHuman(c, s, false);
+  h.g.position.set(x, 0, z);
+  scene.add(h.g);
+  peds.push({
+    x, z, angle: rand(-Math.PI, Math.PI), speed: rand(3.4, 4.4), r:0.45, h,
+    cloth:c, skin:s, panic: 8, turn: rand(0.5, 2.5), anim: rand(0, 6), dead:false, deadT:0
+  });
+}
+
 function spawnGangPed(kind, district){
   const d = district || (kind === 'ally'
     ? (DISTRICTS.find(q => q.owner === 'ally') || DISTRICTS[0])
@@ -3273,6 +3391,20 @@ function updateMission(dt){
     if(S.wanted <= 0.15) completeMission();
   }
 }
+/* ===== СТАТИСТИКА И ДОСТИЖЕНИЯ (хранятся на аккаунте) ===== */
+function GA_(){ return (window.GA && GA.isLoggedIn && GA.isLoggedIn()) ? GA : null; }
+function statAdd(k, v){ const g = GA_(); if(g) g.addStat(k, v === undefined ? 1 : v); }
+function statBest(k, v){ const g = GA_(); if(g) g.bestStat(k, v); }
+function ach(id){
+  const g = GA_(); if(!g) return;
+  try{
+    if(g.unlock(id)){
+      const a = (g.ACH || []).find(x => x.id === id);
+      showMsg('🏆 ДОСТИЖЕНИЕ: ' + (a ? a.name : id), a ? a.desc : '', 4.5);
+      blip(880, 0.16, 0.34, 'sine');
+    }
+  }catch(e){}
+}
 function showMsg(text, sub, t){ S.msg = {text, sub:sub || '', t:t || 3, max:t || 3}; }
 
 /* ============================== ПИКАПЫ: ОБНОВЛЕНИЕ ============================== */
@@ -3352,8 +3484,20 @@ function tryEnterCar(){
   }
   if(best){
     const wasFree = (best.type === 'parked' || best.type === 'traffic');
+    /* --- МОТОЦИКЛ С БАЙКЕРОМ: сбросить с него и уехать --- */
+    if(best.type === 'bike'){
+      const rx = best.x, rz = best.z;
+      if(best.rider){ scene.remove(best.rider.g); best.rider = null; }
+      best.type = 'player';
+      addCrime(0.9);
+      statAdd('bikesStolen', 1);
+      ach('moto');
+      spawnFleePed(rx + rand(-1, 1), rz + rand(-1, 1));
+      showMsg('УГНАН МОТОЦИКЛ', 'Байкер сбежал и вызвал копов!', 2.8);
+    }
     S.inCar = best; best.driver = true;
     if(wasFree) best.type = 'player';
+    statAdd('carsStolen', 1);
     blip(300, 0.07, 0.2, 'square');
     camState.mouseIdle = 0;
     camState.yaw = best.angle;
@@ -3779,6 +3923,11 @@ function respawn(){
 /* ============================== ОБНОВЛЕНИЕ: МАШИНЫ ============================== */
 function syncCar(c, dt){
   const g = c.group;
+  if(c.bike && !c.dead){
+    // мотоцикл кренится в поворот — чем быстрее и круче руль, тем сильнее
+    const lean = clamp(-c.steer * (Math.abs(c.speed) / 16), -0.62, 0.62);
+    c.roll = lerp(c.roll, lean, clamp(dt * 6, 0, 1));
+  }
   const hy = c.airborne ? c.airH : (c.boat ? 0.2 + Math.sin(S.time * 1.5 + c.x * 0.4) * 0.14 : 0);
   g.position.set(c.x, hy, c.z);
   g.rotation.y = -c.angle;
@@ -3836,6 +3985,7 @@ function updateCars(dt){
         } else driveCop(c, dt);
       }
       else if(c.type === 'tank') driveTank(c, dt);
+      else if(c.type === 'bike') driveGrid(c, dt);      // байкер ездит по городу
       else if(c.type === 'parked') c.speed = 0;
       else if(c.type === 'player'){
         // брошенная машина стоит
@@ -5207,6 +5357,7 @@ function boot(){
 }
 document.getElementById('to2d').addEventListener('click', () => { location.href = 'index.html'; });
 document.getElementById('start').addEventListener('click', () => {
+  if(S.state === 'play') return;                        // защита от повторного запуска
   if(specialLocked()){
     const li = specialLockInfo();
     alert('«GTA Алекс: Специал» выходит только 4 октября (начиная с 2027 года).\n' +
@@ -5223,6 +5374,7 @@ document.getElementById('start').addEventListener('click', () => {
   player.x = 5 * CELL; player.z = 5 * CELL;
   camera.position.set(player.x - 8, 5, player.z - 8);
   spawnTraffic();
+  spawnBikes();
   spawnBoats();
   const nPeds = ED.peds || 60;
   for(let i = 0; i < nPeds; i++) spawnPed();
