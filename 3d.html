@@ -1413,15 +1413,27 @@ S.wpn = 2;                                     // текущее оружие (�
 S.aim = false;                                 // прицеливание (ПКМ)
 S.wpnKick = 0;                                 // отдача оружия
 /* ===== ПРИВИЛЕГИИ АККАУНТА (ВЛАДЕЛЕЦ — всё и сразу) ===== */
-const PERKS = (window.GA && GA.perks) ? GA.perks() : {owner:false};
-const ACC_NAME = (window.GA && GA.accountName) ? GA.accountName() : null;
-if(PERKS.owner){
+/* привилегии владельца проверяются В МОМЕНТ ДЕЙСТВИЯ:
+   владелец мог войти уже после загрузки страницы */
+function perksNow(){
+  try{ return (window.GA && GA.perks) ? GA.perks() : {owner:false}; }
+  catch(e){ return {owner:false}; }
+}
+function accNameNow(){
+  try{ return (window.GA && GA.accountName) ? GA.accountName() : null; }
+  catch(e){ return null; }
+}
+function applyOwnerPerks(){
+  if(!perksNow().owner) return false;
   S.owned = [true, true, true, true, true, true, true, true];
   for(const k in S.arms) S.arms[k] = 9999;
   S.money = Math.max(S.money, 1000000);
   S.god = true;
   S.infAmmo = true;
+  return true;
 }
+/* привилегии НЕ применяются при загрузке — только в момент старта игры,
+   иначе они «утекут» обычному игроку, если владелец вышел из аккаунта */
 /* сохранение прогресса аккаунта */
 let accSaveT = 0;
 function accSave(force){
@@ -1438,7 +1450,7 @@ function accSaveTick(dt){
   }
 }
 function applyAccLoad(){
-  if(!window.GA || !GA.isLoggedIn() || PERKS.owner) return;
+  if(!window.GA || !GA.isLoggedIn() || perksNow().owner) return;
   const st = GA.loadState();
   if(st && st.when){
     S.money = Math.max(S.money, st.money);
@@ -4932,11 +4944,11 @@ function drawHUD(){
   c.strokeText(money, W - 20, 52);
   c.fillStyle = '#8ef0a0';
   c.fillText(money, W - 20, 52);
-  if(PERKS.owner){
+  if(perksNow().owner){
     c.font = 'bold 13px "Arial Black", sans-serif';
     c.textAlign = 'center';
     c.lineWidth = 3; c.strokeStyle = 'rgba(0,0,0,0.9)';
-    const bn = '👑 ' + (ACC_NAME || 'ВЛАДЕЛЕЦ');
+    const bn = '👑 ' + (accNameNow() || 'ВЛАДЕЛЕЦ');
     c.strokeText(bn, W / 2, 22);
     c.fillStyle = '#ffd23f';
     c.fillText(bn, W / 2, 22);
@@ -5750,6 +5762,32 @@ function boot(){
   }, 200);
 }
 document.getElementById('to2d').addEventListener('click', () => { location.href = 'index.html'; });
+/* «Специал» может открыться уже ПОСЛЕ загрузки страницы — например, владелец
+   вошёл в лаунчере, а вкладка игры была открыта заранее. Проверяем каждую секунду. */
+if(E === 'special'){
+  const sBtn = document.getElementById('start');
+  const sSub = document.querySelectorAll('#menu .sub');
+  let wasLocked = null;
+  setInterval(() => {
+    if(S.state !== 'menu' || !sBtn) return;
+    const locked = specialLocked();
+    if(locked === wasLocked) return;
+    wasLocked = locked;
+    if(locked){
+      const li = specialLockInfo();
+      sBtn.textContent = '🔒 ЗАКРЫТО ДО 4 ОКТЯБРЯ ' + li.b.getFullYear();
+      sBtn.disabled = true; sBtn.style.opacity = 0.55; sBtn.style.cursor = 'not-allowed';
+      sSub.forEach(el => {
+        el.textContent = 'ВЕРСИЯ «СПЕЦИАЛ» ВЫХОДИТ ТОЛЬКО 4 ОКТЯБРЯ • ЧЕРЕЗ ' +
+          li.days + ' ДН. ДЕНЬ РОЖДЕНИЯ ИГРЫ — 4 ОКТЯБРЯ 2026';
+      });
+    } else {
+      // владелец вошёл — кнопка сразу рабочая
+      sBtn.textContent = 'ИГРАТЬ';
+      sBtn.disabled = false; sBtn.style.opacity = 1; sBtn.style.cursor = '';
+    }
+  }, 1000);
+}
 document.getElementById('start').addEventListener('click', () => {
   if(S.state === 'play') return;                        // защита от повторного запуска
   if(specialLocked()){
@@ -5763,8 +5801,9 @@ document.getElementById('start').addEventListener('click', () => {
   if(AC && AC.state === 'suspended') AC.resume();
   document.getElementById('menu').style.display = 'none';
   S.state = 'play';
+  applyOwnerPerks();                         // владелец мог войти уже после загрузки
   applyAccLoad();
-  if(PERKS.owner) showMsg('👑 ВЛАДЕЛЕЦ', 'Бессмертие • патроны ∞ • всё оружие', 4);
+  if(perksNow().owner) showMsg('👑 ВЛАДЕЛЕЦ', 'Бессмертие • патроны ∞ • всё оружие', 4);
   player.x = 5 * CELL; player.z = 5 * CELL;
   camera.position.set(player.x - 8, 5, player.z - 8);
   spawnTraffic();
