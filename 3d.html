@@ -385,6 +385,16 @@ function addBuilding(x, z, w, h, tall){
   buildings.push({x, z, w, h, hgt: tall ? rand(15, 26) : rand(4.5, 17),
     col: pick(PALETTE), neon: pick(NEON), cx: x + w/2, cz: z + h/2});
 }
+/* ===== СПЕЦИАЛЬНЫЕ ЛОКАЦИИ: занимают целые кварталы ===== */
+const SPECIAL_CELLS = [
+  {kind:'mil',    gx:8, gz:0, name:'ВОЕННАЯ БАЗА',        col:0x6b7a55},
+  {kind:'police', gx:0, gz:8, name:'ПОЛИЦЕЙСКИЙ УЧАСТОК', col:0x51607a}
+];
+function specialCellAt(gx, gz){
+  for(const s of SPECIAL_CELLS) if(s.gx === gx && s.gz === gz) return s;
+  return null;
+}
+
 function genCity(){
   for(let gx = 0; gx < GRID; gx++){
     for(let gz = 0; gz < GRID; gz++){
@@ -392,6 +402,17 @@ function genCity(){
       if(ED.coast && gz >= GRID - 1) continue;
       const x0 = gx * CELL + ROAD/2, z0 = gz * CELL + ROAD/2;
       blockRects.push({x:x0, z:z0, w:CELL - ROAD, h:CELL - ROAD});
+      // военная база и полицейский участок занимают целый квартал
+      const spc = specialCellAt(gx, gz);
+      if(spc){
+        const bw = 16, bh = 13;                      // штаб по центру двора
+        const bx = x0 + (CELL - ROAD)/2 - bw/2, bz = z0 + (CELL - ROAD)/2 - bh/2;
+        addBuilding(bx, bz, bw, bh, false);
+        const hb = buildings[buildings.length - 1];
+        hb.hgt = spc.kind === 'mil' ? 9.5 : 8.5;
+        hb.col = spc.col; hb.special = spc;
+        continue;
+      }
       const bx0 = x0 + WALK, bz0 = z0 + WALK;
       const bx1 = x0 + CELL - ROAD - WALK, bz1 = z0 + CELL - ROAD - WALK;
       const qw = (bx1 - bx0) / 2, qh = (bz1 - bz0) / 2;
@@ -958,7 +979,7 @@ function genPlaces(){
     {kind:'house',   name:'ЧУЖАЯ КВАРТИРА'},
     {kind:'house',   name:'ЧУЖАЯ КВАРТИРА'}
   ];
-  const cand = buildings.filter(b => b.w >= 6.5 && b.h >= 6.5 && b.hgt < 20 && !b.place);
+  const cand = buildings.filter(b => b.w >= 6.5 && b.h >= 6.5 && b.hgt < 20 && !b.place && !b.special);
   let seed = 7;
   const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
   for(const w of want){
@@ -975,6 +996,121 @@ function genPlaces(){
   }
 }
 genPlaces();
+
+/* ====================== ВОЕННАЯ БАЗА И ПОЛИЦЕЙСКИЙ УЧАСТОК ====================== */
+const SPECIALS = [];
+function spawnGuard(x, z, kind){
+  const cloth = kind === 'soldier' ? 0x4a5232 : 0x1d2c4d;
+  const h = makeHuman(cloth, pick(PED_SKIN), false);
+  if(kind === 'soldier') h.hair.material.color.setHex(0x39402a);
+  h.g.position.set(x, 0, z);
+  scene.add(h.g);
+  peds.push({
+    x, z, angle: rand(-Math.PI, Math.PI), speed: rand(1.2, 1.8), r:0.45, h,
+    cloth, skin: pick(PED_SKIN), panic:0, turn: rand(0.5, 2.5), anim: rand(0, 6),
+    dead:false, deadT:0,
+    gang: kind === 'soldier' ? 'rival' : null,   // солдаты бьют по захватчику
+    guard: kind, postX:x, postZ:z, shootCd: rand(0.6, 2.0)
+  });
+}
+function buildSpecials(){
+  for(const s of SPECIAL_CELLS){
+    const b = buildings.find(q => q.special === s);
+    if(!b) continue;
+    const isMil = s.kind === 'mil';
+    const cx = b.cx, cz = b.cz;
+    const half = (CELL - ROAD) / 2;                       // половина квартала
+    const x0c = cx - half, x1c = cx + half, z0c = cz - half, z1c = cz + half;
+    const g = new THREE.Group();
+
+    /* асфальтовый двор */
+    const pad = new THREE.Mesh(new THREE.BoxGeometry(half*2, 0.1, half*2),
+      new THREE.MeshLambertMaterial({color: isMil ? 0x4b4f45 : 0x3d424b}));
+    pad.position.set(cx, 0.05, cz); pad.receiveShadow = true; g.add(pad);
+
+    /* забор по периметру (вид — но не мешает проходу, как в GTA) */
+    const fenceM = new THREE.MeshLambertMaterial({color: isMil ? 0x5b6350 : 0x55627a});
+    const fh = isMil ? 3.4 : 2.4;
+    const seg = (w, d, x, z) => {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, fh, d), fenceM);
+      m.position.set(x, fh/2, z); m.castShadow = true; g.add(m);
+    };
+    const gateW = 9, side = (half*2 - gateW) / 2;
+    seg(half*2, 0.28, cx, z0c);
+    seg(0.28, half*2, x0c, cz);
+    seg(0.28, half*2, x1c, cz);
+    seg(side, 0.28, cx - gateW/2 - side/2, z1c);
+    seg(side, 0.28, cx + gateW/2 + side/2, z1c);
+
+    /* наблюдательные вышки */
+    const towM = new THREE.MeshLambertMaterial({color: isMil ? 0x565c48 : 0x475063});
+    for(const tp of [[x0c + 2.4, z0c + 2.4], [x1c - 2.4, z0c + 2.4]]){
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.45, 7.4, 0.45), towM);
+      post.position.set(tp[0], 3.7, tp[1]); post.castShadow = true; g.add(post);
+      const cab = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1.8, 2.5), towM);
+      cab.position.set(tp[0], 8.2, tp[1]); cab.castShadow = true; g.add(cab);
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.3, 3.1),
+        new THREE.MeshLambertMaterial({color:0x33383f}));
+      roof.position.set(tp[0], 9.25, tp[1]); g.add(roof);
+      const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5),
+        new THREE.MeshBasicMaterial({color:0xfff0b0}));
+      lamp.position.set(tp[0], 9.6, tp[1]); g.add(lamp);
+    }
+
+    /* вертолётная площадка с разметкой */
+    const hpx = x1c - 7.5, hpz = z1c - 7.5;
+    const padH = new THREE.Mesh(new THREE.CylinderGeometry(5.2, 5.2, 0.12, 26),
+      new THREE.MeshLambertMaterial({color:0x3a3f45}));
+    padH.position.set(hpx, 0.12, hpz); padH.receiveShadow = true; g.add(padH);
+    const lineM = new THREE.MeshBasicMaterial({color:0xf0f0f0});
+    const l1 = new THREE.Mesh(new THREE.BoxGeometry(6.6, 0.02, 0.6), lineM);
+    l1.position.set(hpx, 0.2, hpz); g.add(l1);
+    const l2 = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.02, 6.6), lineM);
+    l2.position.set(hpx, 0.2, hpz); g.add(l2);
+
+    /* техника и охрана */
+    if(isMil){
+      const hang = new THREE.Mesh(
+        new THREE.CylinderGeometry(8.5, 8.5, 17, 20, 1, true, 0, Math.PI),
+        new THREE.MeshLambertMaterial({color:0x6a6f5c, side:THREE.DoubleSide}));
+      hang.rotation.z = Math.PI/2;
+      hang.position.set(x0c + 11, 0.02, z0c + 9);
+      hang.castShadow = true; g.add(hang);
+      const tk = makeTank(x0c + 6.5, z1c - 6.5, Math.PI * 0.75);
+      tk.type = 'parked'; cars.push(tk);
+      const heli = makeHeli(hpx, hpz, 0); heli.y = 0; heli.parked = true;
+      helis.push(heli);
+      for(let i = 0; i < 4; i++)
+        spawnGuard(x0c + rand(5, half*2 - 5), z0c + rand(5, half*2 - 5), 'soldier');
+      for(let i = 0; i < 3; i++){
+        const cr = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.0, 1.0),
+          new THREE.MeshLambertMaterial({color:0x4d5236}));
+        cr.position.set(x0c + 5 + i*1.8, 0.5, z0c + 15); cr.castShadow = true; g.add(cr);
+      }
+    } else {
+      for(let i = 0; i < 2; i++){
+        const pc = makeCar(x0c + 5 + i*7, z1c - 4.5, 0, 'police');
+        pc.type = 'parked'; cars.push(pc);
+      }
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(7.5, 0.22, 0.22),
+        new THREE.MeshLambertMaterial({color:0xe8e8e8}));
+      bar.position.set(cx, 1.05, z1c - 1.6); bar.castShadow = true; g.add(bar);
+      const barPost = new THREE.Mesh(new THREE.BoxGeometry(0.35, 1.4, 0.35),
+        new THREE.MeshLambertMaterial({color:0xb02020}));
+      barPost.position.set(cx - 4, 0.7, z1c - 1.6); g.add(barPost);
+      const heli = makeHeli(hpx, hpz, 0); heli.y = 0; heli.parked = true;
+      heli.mat.color.setHex(0x1d2c4d); helis.push(heli);
+      for(let i = 0; i < 3; i++)
+        spawnGuard(x0c + rand(5, half*2 - 5), z0c + rand(5, half*2 - 5), 'cop');
+    }
+    scene.add(g);
+
+    /* штаб можно зайти — внутри работают люди */
+    const p = makePlace(b, isMil ? 'milbase' : 'station', s.name, 0);
+    p.special = s;
+    SPECIALS.push({s, p, x:cx, z:cz, hpx, hpz});
+  }
+}
 
 /* --- интерьер: стены, пол, мебель --- */
 function buildInterior(p){
@@ -1006,7 +1142,31 @@ function buildInterior(p){
     m.position.set(x, (y === undefined ? h/2 : y), z); m.castShadow = true; g.add(m); return m;
   };
   const cx = b.cx, cz = b.cz;
-  if(p.kind === 'company'){
+  if(p.kind === 'milbase' || p.kind === 'station'){
+    const isMil = p.kind === 'milbase';
+    put(iw*0.72, 1.05, 0.9, cx, cz + ih*0.24, dark);              // стойка дежурного
+    put(1.5, 2.2, 0.6, cx - iw*0.3, cz - ih*0.3, soft);           // шкаф формы
+    put(1.5, 2.2, 0.6, cx - iw*0.3 + 1.9, cz - ih*0.3, soft);
+    put(0.6, 1.6, 0.45, cx + iw*0.32, cz - ih*0.2, dark);         // оружейная стойка
+    put(2.1, 0.9, 0.75, cx + iw*0.2, cz + ih*0.1, wood);          // стол документов
+    put(0.5, 0.55, 0.35, cx + iw*0.2 - 1.4, cz + ih*0.1 - 0.75, dark, 0.28); // стул
+    if(isMil){
+      for(let i = 0; i < 3; i++){                                  // ящики со снаряжением
+        put(1.3, 0.9, 0.9, cx - iw*0.3 + i*1.5, cz + ih*0.32,
+          new THREE.MeshLambertMaterial({color:0x4d5236}), 0.45);
+      }
+    }
+    /* люди внутри: стоят за стойкой и поворачиваются к игроку */
+    p.npcs = [];
+    for(let i = 0; i < 2; i++){
+      const h = makeHuman(isMil ? 0x4a5232 : 0x1d2c4d, pick(PED_SKIN), false);
+      if(isMil) h.hair.material.color.setHex(0x39402a);
+      const nx = cx + (i ? 2.4 : -2.4), nz = cz + ih*0.13;
+      h.g.position.set(nx, 0, nz);
+      g.add(h.g);
+      p.npcs.push({h, x:nx, z:nz, t: rand(0, 6), idle: Math.PI});
+    }
+  } else if(p.kind === 'company'){
     put(iw*0.6, 1.0, 0.8, cx, cz + ih*0.22, wood);            // прилавок
     put(1.4, 2.0, 0.5, cx - iw*0.28, cz - ih*0.3, dark);      // стеллаж
     put(1.4, 2.0, 0.5, cx + iw*0.28, cz - ih*0.3, dark);
@@ -1029,6 +1189,19 @@ function placeUpdate(dt){
     const pb = S.inside.p.b, mx = pb.w/2 - 1.0 - player.r, mz = pb.h/2 - 1.0 - player.r;
     player.x = clamp(player.x, pb.cx - mx, pb.cx + mx);
     player.z = clamp(player.z, pb.cz - mz, pb.cz + mz);
+  }
+  /* люди внутри здания: следят за игроком и слегка двигаются */
+  if(S.inside && S.inside.p.npcs){
+    for(const n of S.inside.p.npcs){
+      if(!n.h) continue;
+      n.t -= dt;
+      if(n.t <= 0){ n.t = rand(2.5, 6); n.idle = Math.PI + rand(-0.5, 0.5); }
+      const d = dist(n.x, n.z, player.x, player.z);
+      const want = d < 4.5 ? Math.atan2(player.x - n.x, player.z - n.z) : n.idle;
+      n.h.g.rotation.y = lerpAngle(n.h.g.rotation.y, want, clamp(dt * 4, 0, 1));
+      n.h.torso.position.y = 1.15 + Math.sin(S.time * 2.1 + n.x * 0.3) * 0.016;  // дыхание
+      n.h.head.position.y  = 1.68 + Math.sin(S.time * 2.1 + n.x * 0.3) * 0.014;
+    }
   }
   for(const p of PLACES){
     if(p.cool > 0) p.cool -= dt;
@@ -1066,6 +1239,17 @@ function enterPlace(p){
   player.x = p.b.cx; player.z = p.b.cz;
   hero.g.visible = !ED.fp;
   showMsg(p.name, 'R — действие • G — выйти', 3.2);
+  /* --- специальные здания: свои правила --- */
+  if(p.kind === 'milbase'){
+    ach('milbase'); statAdd('milBreaks', 1);
+    if(S.wanted < 2.5){
+      S.wanted = 2.5; S.crimeTime = 0;
+      showMsg('ВТОРЖЕНИЕ НА ВОЕННУЮ БАЗУ', 'Солдаты подняли тревогу • R — со склада', 4);
+    }
+  } else if(p.kind === 'station'){
+    ach('station'); statAdd('stationVisits', 1);
+    showMsg('ПОЛИЦЕЙСКИЙ УЧАСТОК', 'Формально ты свидетель • R — разговор', 4);
+  }
 }
 function exitPlace(){
   const ins = S.inside; if(!ins) return;
@@ -1094,6 +1278,26 @@ function placeAction(){
     S.money += inc;
     showMsg('ДОХОД: ' + p.name, (p.owned ? 'Твоя компания' : 'Работа') + ' • +$' + inc, 2.8);
     blip(720, 0.1, 0.3, 'square');
+  } else if(p.kind === 'milbase'){
+    /* военная база: со склада забирают боеприпасы */
+    if(p.cool > 0){ showMsg('СКЛАД ПЕРЕГРУЖЕН', 'Приходи через ' + Math.ceil(p.cool) + ' c', 2.2); return; }
+    p.cool = 60;
+    S.arms['7.62'] = (S.arms['7.62'] || 0) + 40;
+    S.arms['ракеты'] = (S.arms['ракеты'] || 0) + 2;
+    if(!p.looted){ p.looted = true; S.money += 500; }
+    showMsg('ВОЕННЫЙ СКЛАД', '+40 патронов 7.62 • +2 ракеты • +$500', 3.4);
+    blip(540, 0.12, 0.3, 'sine');
+    statAdd('milRuns', 1);
+  } else if(p.kind === 'station'){
+    /* полицейский участок: приют и патроны */
+    if(p.cool > 0){ showMsg('УЧАСТОК ПЕРЕГРУЖЕН', 'Приходи через ' + Math.ceil(p.cool) + ' c', 2.2); return; }
+    p.cool = 60;
+    S.arms['9мм'] = (S.arms['9мм'] || 0) + 40;
+    S.health = S.maxHealth;
+    if(!p.looted){ p.looted = true; S.money += 200; }
+    showMsg('НА УЧАСТКЕ', '+40 патронов 9мм • здоровье восстановлено • +$200', 3.4);
+    blip(620, 0.1, 0.28, 'sine');
+    statAdd('stationRuns', 1);
   } else {
     if(p.looted){ showMsg('ЗДЕСЬ ПУСТО', 'Ты уже всё забрал', 2.2); return; }
     p.looted = true;
@@ -1102,6 +1306,7 @@ function placeAction(){
     S.arms['9мм'] = (S.arms['9мм'] || 0) + 30;
     showMsg('ОБЫСК КВАРТИРЫ', '+$' + g + ' • +30 патронов', 2.8);
     blip(600, 0.1, 0.28, 'square');
+    ach('interior'); statAdd('homesRaided', 1);
   }
 }
 
@@ -1832,6 +2037,13 @@ function updateHelis(dt){
   const tgt = (LAW.target && !LAW.target.dead) ? LAW.target : player;
   for(let i = helis.length - 1; i >= 0; i--){
     const h = helis[i];
+    /* вертолёт на площадке стоит на месте, только винт крутится */
+    if(h.parked && !h.flying){
+      h.rotor.rotation.y += dt * 8;
+      if(h.trotor) h.trotor.rotation.x += dt * 13;
+      h.group.position.y = h.y || 0;
+      continue;
+    }
     const dp = dist(h.x, h.z, tgt.x, tgt.z);
     if(h.dead){                                    // падение и утилизация
       h.deadT += dt;
@@ -4334,6 +4546,14 @@ function drawMinimap(c){
     c.fillStyle = p.kind === 'home' ? '#4bd86a' : (p.kind === 'company' ? '#ffd23f' : '#8fd0ff');
     c.fillRect(x0 + p.x*k - 2.5, y0 + p.z*k - 2.5, 5, 5);
   }
+  // военная база и полицейский участок — метки с крестом
+  for(const q of SPECIALS){
+    c.fillStyle = q.s.kind === 'mil' ? '#8fa06a' : '#6fa8ff';
+    c.fillRect(x0 + q.x*k - 4.5, y0 + q.z*k - 4.5, 9, 9);
+    c.fillStyle = '#ffffff';
+    c.fillRect(x0 + q.x*k - 1, y0 + q.z*k - 4.5, 2, 9);
+    c.fillRect(x0 + q.x*k - 4.5, y0 + q.z*k - 1, 9, 2);
+  }
   // дроны — оранжевые треугольники
   c.fillStyle = '#ff9b2a';
   for(const d of drones) if(!d.dead){
@@ -4448,6 +4668,15 @@ function drawBigMap(c){
     const lbl = p.kind === 'home' ? '🏠' : (p.kind === 'company' ? '$' : '⌂');
     c.strokeText(lbl, x0 + p.x*k, y0 + p.z*k - 9);
     c.fillText(lbl, x0 + p.x*k, y0 + p.z*k - 9);
+  }
+  // военная база и полицейский участок
+  for(const q of SPECIALS){
+    c.fillStyle = q.s.kind === 'mil' ? '#8fa06a' : '#6fa8ff';
+    c.fillRect(x0 + q.x*k - 9, y0 + q.z*k - 9, 18, 18);
+    c.lineWidth = 3; c.strokeStyle = 'rgba(0,0,0,0.8)';
+    const sl = q.s.kind === 'mil' ? '🎖' : '🚔';
+    c.strokeText(sl, x0 + q.x*k, y0 + q.z*k - 13);
+    c.fillText(sl, x0 + q.x*k, y0 + q.z*k - 13);
   }
   c.fillStyle = '#ff9b2a';
   for(const d of drones) if(!d.dead){
@@ -5375,6 +5604,7 @@ document.getElementById('start').addEventListener('click', () => {
   camera.position.set(player.x - 8, 5, player.z - 8);
   spawnTraffic();
   spawnBikes();
+  buildSpecials();                                 // военная база и участок (после всех материалов)
   spawnBoats();
   const nPeds = ED.peds || 60;
   for(let i = 0; i < nPeds; i++) spawnPed();
@@ -5432,6 +5662,7 @@ window.__g3 = {S, M, player, camState, cars, peds, pickups, bullets, hero, scene
   spawnKiller, summonCrew, cycleHair, garageTrySpawn, garageUpdate, phoneOpen, GARAGE, HAIRS, exitCar,
   spawnOfficer, retireOfficer, starsWanted,
   PLACES, placeNear, enterPlace, exitPlace, placeAction, placeUpdate,
+  SPECIALS, spawnGuard, spawnFleePed, makeBike, bikeRider,
   post: () => post,
   NET, OPT, netStart, netStop, netCount, receiveMsg, incomingCall, inbox,
   LAW, lawHunt, addCrime,
