@@ -958,6 +958,8 @@ function updatePed(p, dt){
 function killPed(p, bloody, crime){
   if(p.dead) return;
   p.dead = true; p.deadT = 0; S.kills++;
+  statAdd('kills', 1); if(S.kills === 1) ach('first_blood');
+  if(S.kills >= 100) ach('kill100'); if(S.kills >= 500) ach('kill500');
   if(bloody !== false){
     decals.push({x:p.x, y:p.y, r:rand(10, 18), col:'rgba(140,20,20,0.75)'});
     if(decals.length > 260) decals.shift();
@@ -1306,6 +1308,8 @@ function startMission(i){
 function completeMission(){
   const pay = Math.round((M.def.pay || 500) * (1 + M.idx * 0.06));
   S.money += pay;
+  statAdd('missions', 1); statAdd('moneyEarned', pay);
+  if((GA_() ? GA_().stat().missions : 0) >= 20) ach('worker');
   showMsg('МИССИЯ ВЫПОЛНЕНА', '+$' + pay, 3);
   sfx.mission();
   parts.push({x:player.x, y:player.y, vx:0, vy:-40, life:1.4, max:1.4, size:0, col:'#fff', text:'+$' + pay});
@@ -1345,6 +1349,38 @@ function updateMission(dt){
     if(S.wanted <= 0.15) completeMission();
   }
   M.flash += dt;
+}
+/* ===== СТАТИСТИКА И ДОСТИЖЕНИЯ (сохраняются на аккаунт) ===== */
+function GA_(){ return (window.GA && GA.isLoggedIn && GA.isLoggedIn()) ? GA : null; }
+function statAdd(k, v){ const g = GA_(); if(g) g.addStat(k, v === undefined ? 1 : v); }
+function statBest(k, v){ const g = GA_(); if(g) g.bestStat(k, v); }
+function ach(id){
+  const g = GA_(); if(!g) return;
+  try{
+    if(g.unlock(id)){
+      const a = (g.ACH || []).find(x => x.id === id);
+      showMsg('🏆 ДОСТИЖЕНИЕ: ' + (a ? a.name : id), a ? a.desc : '', 4.5);
+      blip(880, 0.16, 0.34, 'sine');
+    }
+  }catch(e){}
+}
+/* периодический учёт прогресса */
+let ST_T = 0, ST_DIST = 0, ST_LX = 0, ST_LY = 0;
+function statsTick(dt){
+  const d = Math.hypot(player.x - ST_LX, player.y - ST_LY);
+  ST_LX = player.x; ST_LY = player.y;
+  if(d < 60) ST_DIST += d;
+  ST_T -= dt;
+  if(ST_T > 0) return;
+  ST_T = 1.2;
+  statBest('distanceM', Math.round(ST_DIST));
+  if(ST_DIST >= 100000) ach('miles');
+  if(S.money >= 50000)  ach('rich');
+  if(S.money >= 500000) ach('tycoon');
+  if(S.wanted >= 4.9)   ach('wanted5');
+  statBest('maxMoney', S.money);
+  statBest('maxKills', S.kills);
+  statBest('maxWanted', Math.round(S.wanted * 10) / 10);
 }
 function showMsg(text, sub, t){
   S.msg = {text, sub:sub || '', t:t || 3, max:t || 3};
@@ -1652,6 +1688,7 @@ function update(dt){
   if(S.inside) S.wanted = Math.max(0, S.wanted - dt * 0.45);   // в доме розыск спадает
   else updateWanted(dt);
   updateMission(dt);
+  statsTick(dt);
   accSaveTick(dt);
   if(S.msg){ S.msg.t -= dt; if(S.msg.t <= 0) S.msg = null; }
   // сирена

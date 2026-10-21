@@ -97,6 +97,18 @@
   .accMsg { margin-top:9px; font-size:12px; min-height:16px; color:#ff8a7a; letter-spacing:1px; }
   .accMsg.ok { color:#9dffb0; }
   .accHint { font-size:11px; color:#6e6f78; letter-spacing:1px; margin-top:3px; line-height:1.6; }
+  /* --- результаты и достижения --- */
+  .statGrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:7px; margin-top:8px; }
+  .st { background:#12141a; border:1px solid #23262e; border-radius:8px; padding:7px 8px; }
+  .st b { display:block; color:#ffd23f; font-size:14px; letter-spacing:1px; }
+  .st span { display:block; color:#7c7f88; font-size:10px; letter-spacing:1px; margin-top:2px; }
+  .stEmpty { font-size:11px; color:#6e6f78; letter-spacing:1px; margin-top:8px; line-height:1.6; }
+  .achGrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:6px; margin-top:9px; }
+  .ach { background:#0e1015; border:1px solid #1c1f26; border-radius:8px; padding:6px 8px; opacity:.5; }
+  .ach.got { opacity:1; border-color:#4a3d1a; background:#15130c; }
+  .ach b { display:block; color:#c9ccd4; font-size:11px; letter-spacing:.5px; }
+  .ach.got b { color:#ffd23f; }
+  .ach span { display:block; color:#6e6f78; font-size:10px; margin-top:2px; line-height:1.4; }
 </style>
 </head>
 <body>
@@ -130,6 +142,16 @@
     </div>
     <div class="accMsg" id="accMsg"></div>
     <div class="accHint" id="accHint">Аккаунты хранятся только на этом компьютере. Владелец получает бессмертие, бесконечные патроны и всё оружие.</div>
+  </div>
+
+  <!-- ===== РЕЗУЛЬТАТЫ И ДОСТИЖЕНИЯ ===== -->
+  <div class="acc" id="statBox" style="display:none">
+    <div class="accHead">
+      <span class="accTitle">🏆 ТВОИ РЕЗУЛЬТАТЫ</span>
+      <span class="accWho" id="achCount"></span>
+    </div>
+    <div id="statGrid"></div>
+    <div id="achGrid"></div>
   </div>
 
   <div class="grid" id="grid"></div>
@@ -303,6 +325,38 @@ function msg(text, ok){
   el.textContent = text || '';
   el.className = 'accMsg' + (ok ? ' ok' : '');
 }
+/* --- результаты и достижения аккаунта --- */
+const STAT_LABELS = {
+  kills:'Убийств', missions:'Миссий выполнено', moneyEarned:'Заработано всего',
+  distanceM:'Пройдено', maxMoney:'Рекорд денег', maxKills:'Рекорд убийств',
+  maxWanted:'Рекорд розыска', bestJump:'Лучший прыжок', jumps:'Прыжков с трамплина',
+  homesRaided:'Обысков жилья', bikesStolen:'Угнано мотоциклов', carsStolen:'Угнано машин',
+  heliFlights:'Полётов на вертолёте', bought:'Куплено объектов', bizBought:'Куплено компаний',
+  milBreaks:'Вторжений на базу', stationVisits:'Визитов на участок', milRuns:'Заборов со склада'
+};
+function fmtStat(k, v){
+  if(k === 'distanceM') return (v / 1000).toFixed(1) + ' км';
+  if(k === 'moneyEarned' || k === 'maxMoney') return '$' + v;
+  if(k === 'bestJump') return v + ' м';
+  return String(v);
+}
+function renderStats(){
+  const box = $('statBox');
+  if(!window.GA || !GA.isLoggedIn()){ box.style.display = 'none'; return; }
+  box.style.display = '';
+  const st = GA.stat() || {};
+  const un = GA.unlocked() || {};
+  const keys = Object.keys(STAT_LABELS).filter(k => st[k] !== undefined && st[k] !== 0);
+  $('statGrid').innerHTML = keys.length
+    ? '<div class="statGrid">' + keys.map(k =>
+        '<div class="st"><b>' + fmtStat(k, st[k]) + '</b><span>' + STAT_LABELS[k] + '</span></div>').join('') + '</div>'
+    : '<div class="stEmpty">Результаты появятся, как только поиграешь — они сохраняются на твой аккаунт.</div>';
+  const list = (GA.ACH || []);
+  $('achCount').textContent = Object.keys(un).length + ' / ' + list.length;
+  $('achGrid').innerHTML = '<div class="achGrid">' + list.map(a =>
+    '<div class="ach' + (un[a.id] ? ' got' : '') + '" title="' + a.desc + '">' +
+      '<b>' + (un[a.id] ? '🏆' : '🔒') + ' ' + a.name + '</b><span>' + a.desc + '</span></div>').join('') + '</div>';
+}
 function refreshAcc(){
   const c = window.GA && GA.current();
   if(c){
@@ -328,6 +382,7 @@ function refreshAcc(){
   }
   if(typeof renderCards === 'function') renderCards();   // «Специал» открывается сразу после входа
   if(typeof tickAge === 'function') tickAge();           // и надпись сверху тоже
+  if(typeof renderStats === 'function') renderStats();   // результаты и достижения
 }
 $('btnLogin').addEventListener('click', () => {
   const r = GA.login($('accName').value, $('accPass').value);
