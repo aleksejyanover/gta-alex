@@ -1378,7 +1378,8 @@ const S = {
   money:350, health:100, maxHealth:100, wanted:0, crimeTime:0,
   inCar:null, kills:0, dead:false, deadT:0,
   nitro:100, shake:0, msg:null, muted:false, dayF:1, nightF:0, unread:0, garSaved:null,
-  inside:null                                   // {p, ex, ez} — игрок внутри дома/компании
+  inside:null,                                  // {p, ex, ez} — игрок внутри дома/компании
+  inHeli:null                                   // вертолёт под игроком
 };
 /* ==================== АРСЕНАЛ: ножики, пистолеты, винтовки, базуки ==================== */
 const WEAPONS = [
@@ -2037,8 +2038,10 @@ function updateHelis(dt){
   const tgt = (LAW.target && !LAW.target.dead) ? LAW.target : player;
   for(let i = helis.length - 1; i >= 0; i--){
     const h = helis[i];
+    /* вертолёт под игроком — летит по управлению */
+    if(h.flying){ flyHeli(h, dt); continue; }
     /* вертолёт на площадке стоит на месте, только винт крутится */
-    if(h.parked && !h.flying){
+    if(h.parked){
       h.rotor.rotation.y += dt * 8;
       if(h.trotor) h.trotor.rotation.x += dt * 13;
       h.group.position.y = h.y || 0;
@@ -3684,6 +3687,12 @@ function spawnWeaponCrates(init){
 
 /* ============================== ВХОД/ВЫХОД ============================== */
 function tryEnterCar(){
+  /* ВЕРТОЛЁТ — сесть и выйти (приоритет над машинами рядом) */
+  if(S.inHeli){
+    if(S.inHeli.canExit) exitHeli();
+    else showMsg('НЕЛЬЗЯ ВЫЙТИ', 'Снизься до земли и почти остановись', 2.4);
+    return true;
+  }
   if(S.inCar){ exitCar(false); return true; }
   if(!player.alive || S.dead) return false;
   // гараж: F рядом с гаражом достаёт твою машину
@@ -3693,6 +3702,12 @@ function tryEnterCar(){
     if(c.dead) continue;
     const dd = dist(c.x, c.z, player.x, player.z);
     if(dd < bd && Math.abs(c.speed) < 8){ bd = dd; best = c; }
+  }
+  /* вертолёт на площадке — если он ближе ближайшей машины */
+  const hz = heliNear();
+  if(hz){
+    const hd = dist(hz.x, hz.z, player.x, player.z);
+    if(!best || hd < bd){ enterHeli(hz); return true; }
   }
   if(best){
     const wasFree = (best.type === 'parked' || best.type === 'traffic');
@@ -3958,6 +3973,7 @@ function updatePlayer(dt){  player.shootCd -= dt; player.hurtCd -= dt; player.da
     if(S.deadT > 3.2) respawn();
     return;
   }
+  if(S.inHeli){ flyHeli(S.inHeli, dt); return; }    // полёт на вертолёте
   if(S.inCar){
     const c = S.inCar;
     let thr = 0, st = 0;
@@ -4256,7 +4272,112 @@ function updateCars(dt){
 /* ============================== КАМЕРА ============================== */
 const camTarget = new THREE.Vector3();
 const camDesired = new THREE.Vector3();
+/* ====================== ВЕРТОЛЁТ: посадка и полёт ====================== */
+function heliNear(){
+  let best = null, bd = 7.5;
+  for(const h of helis){
+    if(h.dead) continue;
+    if(Math.abs(h.y || 0) > 3) continue;                  // в воздухе — не сядешь
+    const d = dist(h.x, h.z, player.x, player.z);
+    if(d < bd){ bd = d; best = h; }
+  }
+  return best;
+}
+function enterHeli(h){
+  S.inHeli = h; h.flying = true; h.takingOff = 1.6;
+  hero.g.visible = false;
+  camState.yaw = h.angle;
+  statAdd('heliFlights', 1);
+  ach('pilot');
+  showMsg('ВЕРТОЛЁТ В ПОЛЁТЕ',
+    'W/S — наклон • A/D — разворот • ПРОБЕЛ — вверх • CTRL — вниз • F — сесть', 6);
+  blip(430, 0.1, 0.3, 'sine');
+}
+function exitHeli(){
+  const h = S.inHeli; if(!h) return;
+  S.inHeli = null; h.flying = false; h.parked = true; h.speed = 0;
+  const a = h.angle + Math.PI/2;
+  player.x = h.x + Math.cos(a) * 3.4;
+  player.z = h.z + Math.sin(a) * 3.4;
+  collideWorld(player, player.r);
+  hero.g.visible = !ED.fp;
+  blip(220, 0.06, 0.18, 'square');
+}
+function flyHeli(h, dt){
+  h.rotor.rotation.y += dt * 26;
+  if(h.trotor) h.trotor.rotation.x += dt * 34;
+  let thr = 0, st = 0, up = 0;
+  if(keys.KeyW || keys.ArrowUp) thr = 1;
+  if(keys.KeyS || keys.ArrowDown) thr = -1;
+  if(keys.KeyA || keys.ArrowLeft) st = -1;
+  if(keys.KeyD || keys.ArrowRight) st = 1;
+  if(keys.Space) up = 1;
+  if(keys.ControlLeft || keys.ControlRight || keys.KeyC) up = -1;
+  if(h.takingOff > 0){ h.takingOff -= dt; up = 1; }         // автоматический сход с площадки
+  /* вертикаль: с командой — тяга против гравитации, без неё — держим высоту */
+  const vert = up !== 0 ? (up * 22 - 12) : -(h.vy || 0) * 4.5;
+  h.vy = clamp((h.vy || 0) + vert * dt, -13, 13);
+  h.y = (h.y || 0) + h.vy * dt;
+  if(h.y < 0){ h.y = 0; h.vy = 0; }
+  if(h.y > 130){ h.y = 130; h.vy = Math.min(h.vy, 0); }
+  /* разворот и горизонтальная скорость */
+  h.angle += st * 1.45 * dt;
+  const want = thr * (h.y < 1 ? 7 : 34);
+  h.speed = lerp(h.speed || 0, want, clamp(dt * 1.5, 0, 1));
+  h.x += Math.cos(h.angle) * h.speed * dt;
+  h.z += Math.sin(h.angle) * h.speed * dt;
+  h.x = clamp(h.x, 5, WORLD - 5); h.z = clamp(h.z, 5, WORLD - 5);
+  /* на малой высоте — можно врезаться в здание */
+  if(h.y < 18){
+    const bs = nearbyBuildings(h.x, h.z);
+    for(const b of bs){
+      if(h.x > b.x - 2 && h.x < b.x + b.w + 2 && h.z > b.z - 2 && h.z < b.z + b.h + 2 && b.hgt + 1.5 > h.y){
+        h.x -= Math.cos(h.angle) * h.speed * dt * 2.5;
+        h.z -= Math.sin(h.angle) * h.speed * dt * 2.5;
+        const hard = Math.abs(h.speed) > 8 || h.vy < -7;
+        h.speed *= -0.25; if(hard) h.vy = Math.max(h.vy, -2);
+        if(hard && !S.god){ damagePlayer(22); S.shake = 0.55; noise(0.2, 0.32, 300); }
+        break;
+      }
+    }
+  }
+  /* внешний вид */
+  const g = h.group;
+  g.position.set(h.x, h.y, h.z);
+  g.rotation.y = -h.angle;
+  g.rotation.z = lerp(g.rotation.z, -st * 0.3, clamp(dt * 4, 0, 1));
+  g.rotation.x = lerp(g.rotation.x, thr * 0.2 + (h.vy < 0 ? -0.1 : 0.06), clamp(dt * 3, 0, 1));
+  if(h.spot) h.spot.material.opacity = clamp(0.2 - h.y * 0.0016, 0, 0.2);
+  if(h.lightR){
+    const on = Math.floor(S.time * 7) % 2 === 0;
+    h.lightR.material.color.setHex(on ? 0xff2020 : 0x550808);
+    h.lightB.material.color.setHex(on ? 0x2060ff : 0x081255);
+  }
+  /* игрок «в кабине» — миссии и миникарта видят его координаты */
+  player.x = h.x; player.z = h.z; player.angle = h.angle;
+  h.canExit = (h.y < 0.35 && Math.abs(h.speed) < 4.5);      // посадка состоялась
+}
+
 function updateCamera(dt){
+  /* ВЕРТОЛЁТ: камера сзади и сверху — независимо от вида версии */
+  if(S.inHeli){
+    const h = S.inHeli;
+    if(camState.mouseIdle > 0.4) camState.yaw = lerpAngle(camState.yaw, h.angle, 1 - Math.pow(0.03, dt));
+    camDesired.set(
+      h.x - Math.cos(h.angle) * 26,
+      h.y + 12,
+      h.z - Math.sin(h.angle) * 26);
+    camera.position.lerp(camDesired, 1 - Math.pow(0.0006, dt));
+    if(S.shake > 0.001){
+      camera.position.x += rand(-S.shake, S.shake) * 0.4;
+      camera.position.z += rand(-S.shake, S.shake) * 0.4;
+    }
+    camTarget.set(h.x + Math.cos(h.angle) * 10, h.y + 1.5, h.z + Math.sin(h.angle) * 10);
+    camera.lookAt(camTarget);
+    const tf = 74 + camState.fovKick * 16;
+    if(Math.abs(camera.fov - tf) > 0.15) camera.fov = lerp(camera.fov, tf, clamp(dt*3, 0, 1));
+    return;
+  }
   const inCar = !!S.inCar;
   const tx = inCar ? S.inCar.x : player.x;
   const tz = inCar ? S.inCar.z : player.z;
@@ -5663,6 +5784,7 @@ window.__g3 = {S, M, player, camState, cars, peds, pickups, bullets, hero, scene
   spawnOfficer, retireOfficer, starsWanted,
   PLACES, placeNear, enterPlace, exitPlace, placeAction, placeUpdate,
   SPECIALS, spawnGuard, spawnFleePed, makeBike, bikeRider,
+  heliNear, enterHeli, exitHeli, flyHeli,
   post: () => post,
   NET, OPT, netStart, netStop, netCount, receiveMsg, incomingCall, inbox,
   LAW, lawHunt, addCrime,
