@@ -223,7 +223,7 @@
 </div>
 
 <script src="three.min.js"></script>
-<script src="accounts.js?v=5"></script>
+<script src="accounts.js?v=6"></script>
 <script>
 (function(){
 "use strict";
@@ -251,16 +251,16 @@ if(typeof THREE === 'undefined'){
 /* ============================== ВЕРСИЯ ИГРЫ ============================== */
 const E = new URLSearchParams(location.search).get('e') || '3';
 const ED = ({
-  '3': {title:'GTA АЛЕКС 3', short:'GTA АЛЕКС 3', sub:'ТРЕТЬЕ ЛИЦО • АРКАДА • КЛАССИКА',
+  '3': {title:'GTA АЛЕКС 3', short:'GTA АЛЕКС 3', sub:'ОТ ПЕРВОГО ЛИЦА • АРКАДА • КЛАССИКА',
         tod:0.38, dayLen:240, skyDay:0x8ec9ee, skyNight:0x0a1024, skySet:0xff8a4a,
-        palette:null, cars:34, peds:60, hud:'#5c9cff', fp:false, real:1, killers:1, phone:true},
+        palette:null, cars:34, peds:60, hud:'#5c9cff', fp:true, real:1, killers:1, phone:true},
   // МРАЧНЫЙ КРИМИНАЛ: дождь, строгая полиция, тайные сделки, киллеры
-  '4': {title:'GTA АЛЕКС 4', short:'GTA АЛЕКС 4', sub:'ТРЕТЬЕ ЛИЦО • ДОЖДЬ • СДЕЛКИ • КИЛЛЕРЫ',
+  '4': {title:'GTA АЛЕКС 4', short:'GTA АЛЕКС 4', sub:'ОТ ПЕРВОГО ЛИЦА • ДОЖДЬ • СДЕЛКИ • КИЛЛЕРЫ',
         tod:0.66, dayLen:320, skyDay:0x6b7480, skyNight:0x090c13, skySet:0x3f4650,
         palette:[0x5a6068,0x4e555e,0x666c74,0x474d55,0x5e646c,0x535960], rain:true,
         tint:'#8a929c', tintA:0.28, cars:34, peds:56, fogNear:60, fogFar:330,
         crime:1.5, strict:true, deal:true, nightSteal:true, copRate:1.6, decay:0.3,
-        hud:'#8fb8d8', fp:false, real:2, killers:2, phone:true,
+        hud:'#8fb8d8', fp:true, real:2, killers:2, phone:true,
         missions:[
           {type:'car',     text:'Дождь. Сядь в машину — жми F'},
           {type:'deal',    text:'Тайная сделка: доберись без свидетелей', time:95, pay:900},
@@ -300,11 +300,11 @@ const ED = ({
           {type:'deliver', text:'Доставка на закате', time:70, pay:2600}
         ]},
   // SAN ANDREAS: война банд, гараж, свои машины, герои, причёски
-  'sa': {title:'GTA АЛЕКС: SAN ANDREAS', short:'SAN ANDREAS', sub:'БАНДЫ • ГАРАЖ • ГЕРОИ • ПРИЧЁСКА',
+  'sa': {title:'GTA АЛЕКС: SAN ANDREAS', short:'SAN ANDREAS', sub:'ОТ ПЕРВОГО ЛИЦА • БАНДЫ • ГАРАЖ • ПРИЧЁСКА',
         tod:0.3, dayLen:260, skyDay:0x9ecfe0, skyNight:0x0c0f1e, skySet:0xffb060,
         palette:[0xd8b878,0xc9a060,0xe0c890,0xb09060,0xd8c0a0,0xc0a878],
         tint:'#d8b070', tintA:0.42, cars:36, peds:62, gangs:true, hud:'#4bd86a',
-        fp:false, real:1, killers:2, phone:true, garage:true, crew:true, style:true,
+        fp:true, real:1, killers:2, phone:true, garage:true, crew:true, style:true,
         missions:[
           {type:'car',      text:'Сядь в машину — начинаем войну за район'},
           {type:'takeover', text:'Захвати район: стой в зоне до победы', time:80, pay:1400},
@@ -957,12 +957,51 @@ genCity(); buildIndex(); buildCity();
 
 /* ===== ДОМА И КОМПАНИИ: можно заходить, свой дом, бизнес ===== */
 const PLACES = [];
+/* цвета мест по типу — общие для кольца, миникарты, большой карты и подсказок */
+const PLACE_COL = {
+  home:0x4bd86a, company:0xffd23f, house:0x5b8dff, milbase:0xff6b3d, station:0x3d8bff,
+  hair:0xff7ad9, clothes:0xff9e3d, market:0x3de0ff, sport:0xff2a6a,
+  pharm:0x54ff8f, cafe:0xffd76b
+};
+function placeColHex(k){ return PLACE_COL[k] !== undefined ? PLACE_COL[k] : 0x5b8dff; }
+function placeColCss(k){
+  const h = placeColHex(k).toString(16);
+  return '#' + (h.length < 6 ? '000000'.slice(h.length) + h : h);
+}
+/* иконка для отметки на большой карте */
+function placeIcon(k){
+  return k === 'home' ? '🏠' : (k === 'company' ? '$'
+    : (k === 'hair' ? '✂' : (k === 'clothes' ? '👕' : (k === 'market' ? '🛒'
+    : (k === 'sport' ? '🏎' : (k === 'pharm' ? '✚' : (k === 'cafe' ? '☕'
+    : (k === 'milbase' ? '★' : (k === 'station' ? '👮' : '⌂')))))))));
+}
+/* эти типы — магазины: внутри продавец */
+function isShopKind(k){
+  return k === 'company' || k === 'hair' || k === 'clothes' || k === 'market' ||
+         k === 'sport' || k === 'pharm' || k === 'cafe';
+}
+/* что делает клавиша R внутри места */
+function placeHint(p){
+  switch(p.kind){
+    case 'home':    return 'спать и сохранить';
+    case 'company': return 'получить доход';
+    case 'hair':    return 'стрижка ($50)';
+    case 'clothes': return 'сменить одежду';
+    case 'market':  return 'закупиться ($120)';
+    case 'pharm':   return 'приём врача ($60)';
+    case 'cafe':    return 'перекус ($40)';
+    case 'sport':   return 'взять спорткар';
+    case 'milbase': return 'военный склад';
+    case 'station': return 'патроны и отдых';
+    default:        return 'обыскать';
+  }
+}
 function makePlace(b, kind, name, price){
   const p = {b, kind, name, price: price || 0, owned:false, looted:false, cool:0,
              x:b.cx, z:b.cz, dx:b.cx, dz:b.z + b.h/2 + 2.4, rects:null, int:null};
   b.place = p; PLACES.push(p);
   const ring = new THREE.Mesh(new THREE.RingGeometry(0.95, 1.35, 18),
-    new THREE.MeshBasicMaterial({color: kind === 'home' ? 0x4bd86a : (kind === 'company' ? 0xffd23f : 0x5b8dff),
+    new THREE.MeshBasicMaterial({color: placeColHex(kind),
       side: THREE.DoubleSide, transparent:true, opacity:0.9, depthWrite:false}));
   ring.rotation.x = -Math.PI/2; ring.position.set(p.dx, 0.07, p.dz);
   scene.add(ring); p.ring = ring;
@@ -975,6 +1014,17 @@ function genPlaces(){
     {kind:'company', name:'АВТОСАЛОН «ALEX»',  price:8000},
     {kind:'company', name:'БАНК «ALEX»',       price:10000},
     {kind:'company', name:'ПИЦЦЕРИЯ «АЛЕКС»',  price:3000},
+    /* --- магазины: заходи и пользуйся (действие R) --- */
+    {kind:'hair',    name:'ПАРИКМАХЕРСКАЯ «СТРИЖКА»'},
+    {kind:'clothes', name:'МАГАЗИН ОДЕЖДЫ «СТИЛЬ»'},
+    {kind:'clothes', name:'МАГАЗИН ОДЕЖДЫ «СТРИТ»'},
+    {kind:'clothes', name:'БУТИК «ALEX MODE»'},
+    {kind:'market',  name:'СУПЕРМАРКЕТ «ЕЖЕДНЕВНЫЙ»'},
+    {kind:'market',  name:'СУПЕРМАРКЕТ «24 ЧАСА»'},
+    {kind:'sport',   name:'СПОРТКАР-ДИЛЕР «ALEX SPORT»'},
+    {kind:'sport',   name:'СПОРТКАРЫ «ALEX MOTORS»'},
+    {kind:'pharm',   name:'АПТЕКА «ЗДОРОВЬЕ»'},
+    {kind:'cafe',    name:'БАР «УГОЛОК»'},
     {kind:'house',   name:'ЧУЖАЯ КВАРТИРА'},
     {kind:'house',   name:'ЧУЖАЯ КВАРТИРА'},
     {kind:'house',   name:'ЧУЖАЯ КВАРТИРА'}
@@ -1117,7 +1167,7 @@ function buildInterior(p){
   const b = p.b;
   const g = new THREE.Group();
   const iw = b.w - 1.2, ih = b.h - 1.2, hh = 3.1;
-  const floorM = new THREE.MeshLambertMaterial({color: p.kind === 'company' ? 0x9aa0a8 : 0xa9784c});
+  const floorM = new THREE.MeshLambertMaterial({color: isShopKind(p.kind) ? 0x9aa0a8 : 0xa9784c});
   const fl = new THREE.Mesh(new THREE.BoxGeometry(iw, 0.1, ih), floorM);
   fl.position.set(b.cx, 0.05, b.cz); fl.receiveShadow = true; g.add(fl);
   const wallM = new THREE.MeshLambertMaterial({color:0xded6c8});
@@ -1182,7 +1232,7 @@ function buildInterior(p){
   /* люди внутри: продавец за прилавком или жилец (кроме штабов — там свои) */
   if(!p.npcs){
     p.npcs = [];
-    const isShop = p.kind === 'company';
+    const isShop = isShopKind(p.kind);
     const n = isShop ? 1 : (Math.random() < 0.5 ? 2 : 1);
     for(let i = 0; i < n; i++){
       const h = makeHuman(isShop ? 0x2f5a8a : pick(PED_CLOTH), pick(PED_SKIN), false);
@@ -1275,6 +1325,22 @@ function exitPlace(){
   player.x = ins.ex; player.z = ins.ez;
   collideWorld(player, player.r);
 }
+/* спорткар от дилера: ставим на дорогу рядом с салоном */
+function dealerCar(p){
+  let best = null, bd = 1e9;
+  for(let i = 0; i < 40; i++){
+    const q = randomRoadPoint(0);
+    const d = dist(q.x, q.z, p.x, p.z);
+    if(d > 9 && d < bd){ bd = d; best = q; }
+  }
+  if(!best) best = {x: clamp(p.x + 12, 6, WORLD - 6), z: clamp(p.z + 12, 6, WORLD - 6)};
+  const vert = Math.abs(((best.x % CELL) + CELL) % CELL) < 1;
+  const c = makeCar(best.x, best.z, vert ? Math.PI/2 : 0, 'sport',
+                    pick([0xff2a2a, 0x18e0ff, 0xffe23f, 0x2fff7a, 0xff5cd0, 0xf5f5f5]));
+  c.type = 'parked'; c.sport = true; c.max = 30;   // стоит на месте, но быстрый
+  cars.push(c);
+  return c;
+}
 function placeAction(){
   const ins = S.inside; if(!ins) return;
   const p = ins.p;
@@ -1312,6 +1378,55 @@ function placeAction(){
     showMsg('НА УЧАСТКЕ', '+40 патронов 9мм • здоровье восстановлено • +$200', 3.4);
     blip(620, 0.1, 0.28, 'sine');
     statAdd('stationRuns', 1);
+  } else if(p.kind === 'hair'){
+    /* ПАРИКМАХЕРСКАЯ: смена причёски */
+    if(p.cool > 0){ showMsg('МАСТЕР ЗАНЯТ', 'Ещё ' + Math.ceil(p.cool) + ' c', 2.2); return; }
+    if(S.money < 50){ showMsg('МАЛО ДЕНЕГ', 'Стрижка стоит $50', 2.4); return; }
+    S.money -= 50; p.cool = 3;
+    cycleHair(); statAdd('cuts', 1); ach('haircut');
+    blip(760, 0.08, 0.2, 'sine');
+  } else if(p.kind === 'clothes'){
+    /* МАГАЗИН ОДЕЖДЫ: смена образа */
+    if(p.cool > 0){ showMsg('ПРИМЕРНАЯ ЗАНЯТА', 'Ещё ' + Math.ceil(p.cool) + ' c', 2.2); return; }
+    p.cool = 1;
+    cycleOutfit(); statAdd('outfits', 1); ach('fashion');
+    blip(820, 0.08, 0.2, 'square');
+  } else if(p.kind === 'market'){
+    /* СУПЕРМАРКЕТ: еда, аптечка, патроны */
+    if(p.cool > 0){ showMsg('КАССА ЗАНЯТА', 'Приходи через ' + Math.ceil(p.cool) + ' c', 2.2); return; }
+    if(S.money < 120){ showMsg('МАЛО ДЕНЕГ', 'Покупка стоит $120', 2.4); return; }
+    S.money -= 120; p.cool = 25;
+    S.health = S.maxHealth;
+    S.arms['9мм'] = (S.arms['9мм'] || 0) + 40;
+    S.arms['дробь'] = (S.arms['дробь'] || 0) + 16;
+    showMsg('СУПЕРМАРКЕТ: ' + p.name, 'Еда и напитки • здоровье + патроны', 3.4);
+    blip(700, 0.1, 0.25, 'sine');
+    statAdd('shopsBought', 1); ach('shopper');
+  } else if(p.kind === 'pharm'){
+    /* АПТЕКА: полное восстановление здоровья */
+    if(p.cool > 0){ showMsg('ФАРМАЦЕВТ ЗАНЯТ', 'Приходи через ' + Math.ceil(p.cool) + ' c', 2.2); return; }
+    if(S.money < 60){ showMsg('МАЛО ДЕНЕГ', 'Приём стоит $60', 2.4); return; }
+    S.money -= 60; p.cool = 20;
+    S.health = S.maxHealth;
+    showMsg('АПТЕКА «ЗДОРОВЬЕ»', 'Здоровье полностью восстановлено', 3.2);
+    blip(740, 0.1, 0.22, 'sine');
+    statAdd('shopsBought', 1); ach('shopper');
+  } else if(p.kind === 'cafe'){
+    /* БАР: перекус и бодрость */
+    if(p.cool > 0){ showMsg('БАРМЕН МЫЕТ ПОСУДУ', 'Приходи через ' + Math.ceil(p.cool) + ' c', 2.2); return; }
+    if(S.money < 40){ showMsg('МАЛО ДЕНЕГ', 'Заказ стоит $40', 2.4); return; }
+    S.money -= 40; p.cool = 15;
+    S.health = Math.min(S.maxHealth, S.health + 30);
+    showMsg('БАР «УГОЛОК»', '+30 здоровья • «За город!»', 3.0);
+    blip(680, 0.1, 0.24, 'sine');
+  } else if(p.kind === 'sport'){
+    /* ДИЛЕР СПОРТКАРОВ: выдают машину на тест-драйв */
+    if(p.cool > 0){ showMsg('ВЫДАЧА МАШИНЫ ИДЁТ', 'Подожди ' + Math.ceil(p.cool) + ' c', 2.2); return; }
+    p.cool = 6;
+    dealerCar(p);
+    showMsg('ТЕСТ-ДРАЙВ: ' + p.name, 'Спорткар ждёт у выхода — выходи и садись (F)', 3.8);
+    blip(880, 0.1, 0.3, 'square');
+    statAdd('testDrives', 1); ach('testdrive');
   } else {
     if(p.looted){ showMsg('ЗДЕСЬ ПУСТО', 'Ты уже всё забрал', 2.2); return; }
     p.looted = true;
@@ -1478,7 +1593,17 @@ function cycleWeapon(dir){
     if(S.owned[i]){ switchWeapon(i); return; }
   }
 }
-const camState = { yaw:0.6, pitch:0.26, dist:7, mouseIdle:99, fovKick:0 };
+const camState = { yaw:0.6, pitch:0.26, dist:7, mouseIdle:99, fovKick:0, zoom:0 };
+/* F3 — отдалить камеру, F4 — приближить. 0 = обычное первое лицо. */
+function camZoom(dir){
+  const z0 = camState.zoom;
+  camState.zoom = Math.max(0, Math.min(14, z0 + dir * 1.5));
+  if(camState.zoom === z0) return;
+  if(camState.zoom < 0.05) showMsg('🔍 ПЕРВОЕ ЛИЦО', 'F3 — отдалить • F4 — приближить', 1.8);
+  else showMsg('🔍 КАМЕРА: ' + camState.zoom.toFixed(1) + ' м',
+               (camState.zoom > z0 ? 'отдалилась' : 'приблизилась') + ' • F3 — дальше, F4 — ближе', 1.8);
+  blip(camState.zoom > z0 ? 520 : 700, 0.05, 0.2, 'square');
+}
 const player = { x:WORLD/2, z:WORLD/2, angle:0, r:0.6, alive:true, shootCd:0, anim:0, hurtCd:0, moving:0, dashCd:0 };
 const keys = {}, mouse = { down:false, locked:false, edge:false, rdown:false };
 
@@ -2741,8 +2866,9 @@ function buildViewModel(){
 function updateViewModel(dt){
   if(!viewGun) return;
   const inCar = !!S.inCar;
-  viewGun.visible = !inCar && !S.dead;
-  if(inCar || S.dead) return;
+  // при отдалённой камере (F3) видно героя — руку от первого лица прячем
+  viewGun.visible = !inCar && !S.dead && camState.zoom < 2.5;
+  if(inCar || S.dead || camState.zoom >= 2.5) return;
   const w = WP();
   const bob = Math.sin(player.anim * 1.1) * 0.012 * player.moving;
   const kick = S.wpnKick;
@@ -2907,6 +3033,37 @@ function cycleHair(){
   hr.scale.set(hcfg.s[0], hcfg.s[1], hcfg.s[2]);
   hr.position.set(hcfg.p[0], hcfg.p[1], hcfg.p[2]);
   showMsg('ПРИЧЁСКА: ' + hcfg.n, 'Сменить ещё раз — клавиша Y', 2.4);
+  sfx.mission();
+}
+
+/* ===== ОДЕЖДА: магазины одежды меняют образ ===== */
+const OUTFITS = [
+  {n:'КЛАССИКА',  top:0xd94f4f, bot:0x2a2f3a},
+  {n:'СПОРТ',      top:0x2f7fd9, bot:0x1b1e24},
+  {n:'ЧЁРНЫЙ',     top:0x14161a, bot:0x0e1014},
+  {n:'БЕЛЫЙ',      top:0xf2f2f2, bot:0x3a3f47},
+  {n:'ХАКИ',       top:0x5a6b3a, bot:0x333a24},
+  {n:'НЕОН',       top:0x20e0b0, bot:0x14161a},
+  {n:'РОЗОВЫЙ',    top:0xff8ac0, bot:0x2a2f3a},
+  {n:'ДЕНИМ',      top:0x3f6ba8, bot:0x2b3550}
+];
+let outfitIdx = 0;
+/* материалы новые — иначе перекрасятся прохожие (clothMat кэшируется по цвету) */
+function applyOutfit(i){
+  outfitIdx = ((i % OUTFITS.length) + OUTFITS.length) % OUTFITS.length;
+  const o = OUTFITS[outfitIdx];
+  const mk = c => HQ
+    ? new THREE.MeshStandardMaterial({color:c, roughness:0.85, metalness:0, envMapIntensity:0.5})
+    : new THREE.MeshLambertMaterial({color:c});
+  const top = mk(o.top), bot = mk(o.bot);
+  hero.torso.material = top;
+  hero.armL.material = top; hero.armR.material = top;
+  hero.legL.material = bot; hero.legR.material = bot;
+  return o;
+}
+function cycleOutfit(){
+  const o = applyOutfit(outfitIdx + 1);
+  showMsg('ОДЕЖДА: ' + o.n, 'Сменить ещё — магазин одежды, действие R', 2.4);
   sfx.mission();
 }
 /* ==================== ГАРАЖ: СВОИ МАШИНЫ (SAN ANDREAS) ==================== */
@@ -4413,7 +4570,15 @@ function flyHeli(h, dt){
   h.canExit = (h.y < 0.35 && Math.abs(h.speed) < 4.5);      // посадка состоялась
 }
 
+/* герой виден, когда не в машине/вертолёте и не «чистое» первое лицо.
+   При отдалении камеры (F3) модель появляется — видно одежду и причёску. */
+function syncHeroVis(){
+  if(S.dead) return;                                // состояние смерти решает respawn()
+  if(S.inCar || S.inHeli){ hero.g.visible = false; return; }
+  hero.g.visible = !ED.fp || camState.zoom >= 2.5;
+}
 function updateCamera(dt){
+  syncHeroVis();
   /* ВЕРТОЛЁТ: камера сзади и сверху — независимо от вида версии */
   if(S.inHeli){
     const h = S.inHeli;
@@ -4445,6 +4610,17 @@ function updateCamera(dt){
       tx + (inCar ? Math.cos(camState.yaw) * 0.35 : 0),
       (inCar ? 1.42 : 1.62) + (inCar ? Math.sin(S.time * 9) * Math.min(Math.abs(S.inCar.speed) * 0.004, 0.05) : 0),
       tz + (inCar ? Math.sin(camState.yaw) * 0.35 : 0));
+    /* F3/F4 — отодвинуть камеру назад по направлению взгляда.
+       Смещение входит в ЦЕЛЕВУЮ точку, иначе сглаживание будет с ним бороться
+       и камера уедет в несколько раз дальше. 0 = обычное первое лицо. */
+    const zc = camState.zoom;
+    if(zc > 0.05){
+      const zp = clamp(camState.pitch, -0.8, 1.0);
+      camDesired.x -= Math.cos(camState.yaw) * Math.cos(zp) * zc;
+      camDesired.z -= Math.sin(camState.yaw) * Math.cos(zp) * zc;
+      camDesired.y += Math.sin(zp) * zc + zc * 0.26;      // чуть сверху — видно игрока
+      if(camDesired.y < 0.55) camDesired.y = 0.55;        // не уйти под землю
+    }
     camera.position.lerp(camDesired, 1 - Math.pow(0.000001, dt));
     if(S.shake > 0.001){
       camera.position.x += rand(-S.shake, S.shake) * 0.5;
@@ -4720,7 +4896,7 @@ function drawMinimap(c){
   for(const q of peds) if(q.cop && !q.dead) c.fillRect(x0 + q.x*k - 1.5, y0 + q.z*k - 1.5, 3, 3);
   // дома и компании
   for(const p of PLACES){
-    c.fillStyle = p.kind === 'home' ? '#4bd86a' : (p.kind === 'company' ? '#ffd23f' : '#8fd0ff');
+    c.fillStyle = placeColCss(p.kind);
     c.fillRect(x0 + p.x*k - 2.5, y0 + p.z*k - 2.5, 5, 5);
   }
   // военная база и полицейский участок — метки с крестом
@@ -4839,10 +5015,10 @@ function drawBigMap(c){
   // дома и компании (с подписью на большой карте)
   c.font = 'bold 11px monospace'; c.textAlign = 'center';
   for(const p of PLACES){
-    c.fillStyle = p.kind === 'home' ? '#4bd86a' : (p.kind === 'company' ? '#ffd23f' : '#8fd0ff');
+    c.fillStyle = placeColCss(p.kind);
     c.fillRect(x0 + p.x*k - 5, y0 + p.z*k - 5, 10, 10);
     c.lineWidth = 3; c.strokeStyle = 'rgba(0,0,0,0.8)';
-    const lbl = p.kind === 'home' ? '🏠' : (p.kind === 'company' ? '$' : '⌂');
+    const lbl = placeIcon(p.kind);
     c.strokeText(lbl, x0 + p.x*k, y0 + p.z*k - 9);
     c.fillText(lbl, x0 + p.x*k, y0 + p.z*k - 9);
   }
@@ -5099,9 +5275,7 @@ function drawHUD(){
     let hint = null, col = '#8fd0ff';
     if(S.inside){
       const ip = S.inside.p;
-      hint = ip.name + '  •  R — ' +
-        (ip.kind === 'home' ? 'спать и сохранить' : (ip.kind === 'company' ? 'получить доход' : 'обыскать')) +
-        '  •  G — выйти';
+      hint = ip.name + '  •  R — ' + placeHint(ip) + '  •  G — выйти';
       col = '#8ef0a0';
     } else if(!S.inCar && !S.dead){
       const np = placeNear();
@@ -5109,7 +5283,7 @@ function drawHUD(){
         hint = (np.price && !np.owned)
           ? 'G — КУПИТЬ: ' + np.name + '  ($' + np.price + ')'
           : 'G — войти: ' + np.name + (np.kind === 'company' ? (np.owned ? '  [твоя]' : '') : '');
-        col = np.kind === 'home' ? '#8ef0a0' : (np.kind === 'company' ? '#ffd23f' : '#8fd0ff');
+        col = placeColCss(np.kind);
       }
     }
     if(hint){
@@ -5644,7 +5818,7 @@ document.getElementById('phChain').addEventListener('click', e => {
 });
 window.addEventListener('keydown', e => {
   keys[e.code] = true;
-  if(['Tab','Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].indexOf(e.code) >= 0) e.preventDefault();
+  if(['Tab','Space','F3','F4','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].indexOf(e.code) >= 0) e.preventDefault();
   if(S.state !== 'play') return;
   // ===== ВХОДЯЩИЙ ЗВОНОК: управление с клавиатуры =====
   if(document.getElementById('call').style.display === 'block'){
@@ -5662,6 +5836,9 @@ window.addEventListener('keydown', e => {
   }
   if(e.code === 'KeyR'){ placeAction(); return; }
   if(e.code === 'KeyF') tryEnterCar();
+  // ===== ЗУМ КАМЕРЫ: F3 — отдалить, F4 — приближить =====
+  if(e.code === 'F3'){ camZoom(+1); return; }
+  if(e.code === 'F4'){ camZoom(-1); return; }
   // ===== АРСЕНАЛ: клавиши 1-8 =====
   if(/^Digit[1-8]$/.test(e.code)){
     switchWeapon(parseInt(e.code.slice(5), 10) - 1);
@@ -5866,8 +6043,10 @@ window.__g3 = {S, M, player, camState, cars, peds, pickups, bullets, hero, scene
   spawnKiller, summonCrew, cycleHair, garageTrySpawn, garageUpdate, phoneOpen, GARAGE, HAIRS, exitCar,
   spawnOfficer, retireOfficer, starsWanted,
   PLACES, placeNear, enterPlace, exitPlace, placeAction, placeUpdate,
+  cycleOutfit, applyOutfit, OUTFITS, isShopKind, placeHint, placeIcon, placeColCss,
+  dealerCar, syncHeroVis,
   SPECIALS, spawnGuard, spawnFleePed, makeBike, bikeRider,
-  heliNear, enterHeli, exitHeli, flyHeli,
+  heliNear, enterHeli, exitHeli, flyHeli, camZoom,
   post: () => post,
   NET, OPT, netStart, netStop, netCount, receiveMsg, incomingCall, inbox,
   LAW, lawHunt, addCrime,
