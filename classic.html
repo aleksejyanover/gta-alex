@@ -35,6 +35,39 @@
   .controls div { font-size:13px; color:#c9cad2; letter-spacing:1px; font-family:monospace; }
   .controls b { color:#f5c542; }
   .note { margin-top:16px; font-size:11px; color:#6e6f78; letter-spacing:2px; }
+  /* ===== ТЕЛЕФОН (клавиша P) ===== */
+  #phone { display:none; position:fixed; right:16px; top:50%; transform:translateY(-50%); width:272px;
+    z-index:30; background:linear-gradient(180deg,#15161c,#0b0c10); border:3px solid #000; border-radius:22px;
+    box-shadow:0 0 0 2px #3a3b44, 0 24px 60px rgba(0,0,0,.8); padding:14px; font-family:monospace; }
+  #phone .phTop { text-align:center; color:#5c9cff; font-size:12px; letter-spacing:3px; margin-bottom:10px; }
+  #phone .phCap { font-size:10px; color:#6e6f78; margin-bottom:4px; letter-spacing:1px; text-align:center; }
+  #phone .phC { display:block; width:100%; margin-top:6px; padding:9px; text-align:center; border:none;
+    background:#2fbf5f; color:#04160a; cursor:pointer; font-weight:bold; font-size:11px; letter-spacing:1px;
+    font-family:inherit; border-radius:8px; }
+  #phone .phC:hover { filter:brightness(1.12); }
+  #phone .phC.gift { background:#2e78ff; color:#eaf2ff; }
+  #phone .phC.dark { background:#20222c; color:#c9cad2; }
+  #phone .phC.warn { background:#e0453a; color:#fff; }
+  #phone .phDial { display:flex; gap:5px; margin-top:9px; }
+  #phone .phDial input { flex:1; min-width:0; padding:8px; background:#1a1c24; border:1px solid #343641;
+    color:#e8e9ef; font-family:monospace; font-size:13px; }
+  #phone .phDial button { padding:8px 11px; background:#2fbf5f; border:none; color:#04160a; cursor:pointer;
+    font-weight:bold; font-family:inherit; }
+  #phone #phCallLog { margin-top:7px; max-height:58px; overflow:auto; font-size:10px; color:#8b8d98; }
+  #phone .phClose { margin-top:9px; width:100%; padding:8px; background:#2a2c36; color:#c9cad2;
+    border:2px solid #3a3c48; cursor:pointer; font-family:inherit; letter-spacing:1px; border-radius:8px; }
+  #call2 { display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:40;
+    width:min(350px,92vw); background:linear-gradient(180deg,#15161c,#0b0c10); border:3px solid #000;
+    border-radius:18px; box-shadow:0 0 0 2px #3a3b44, 0 24px 60px rgba(0,0,0,.85); padding:18px;
+    text-align:center; font-family:monospace; color:#e8e9ef; }
+  #call2 .clWho { font-size:20px; font-weight:bold; letter-spacing:2px; color:#f5c542; }
+  #call2 .clSub { font-size:11px; color:#8b8d98; margin-top:5px; letter-spacing:1px; }
+  #call2 .clTalk { margin-top:11px; font-size:13px; color:#c9cad2; line-height:1.5; min-height:18px; }
+  #call2 .clRow { display:flex; gap:8px; margin-top:15px; }
+  #call2 button { flex:1; padding:11px; border:none; cursor:pointer; font-family:inherit; font-weight:bold;
+    letter-spacing:1px; border-radius:10px; font-size:13px; }
+  #call2 .yes { background:#2fbf5f; color:#04160a; }
+  #call2 .no { background:#e0453a; color:#fff; }
 </style>
 </head>
 <body>
@@ -65,10 +98,33 @@
     <div><b>F</b> — сесть / выйти из машины</div>
     <div><b>SPACE</b> — ручник</div>
     <div><b>TAB</b> — карта города</div>
+    <div><b>P</b> — телефон: звонки и помощь</div>
     <div><b>ESC</b> — пауза</div>
     <div><b>M</b> — звук вкл/выкл</div>
   </div>
   <div class="note">НУЖНА КЛАВИАТУРА И МЫШЬ</div>
+</div>
+
+<!-- ===== ТЕЛЕФОН (клавиша P) ===== -->
+<div id="phone">
+  <div class="phTop">GTA PHONE • <span id="phClock">00:00</span></div>
+  <div class="phCap">КОНТАКТЫ — НАЖМИ, ЧТОБЫ ПОЗВОНИТЬ</div>
+  <div id="phContacts"></div>
+  <div class="phDial">
+    <input id="phDialIn" maxlength="6" placeholder="номер..." inputmode="numeric">
+    <button id="phDialGo">📞</button>
+  </div>
+  <div id="phCallLog"></div>
+  <button class="phClose" id="phClose">✕ ЗАКРЫТЬ (P)</button>
+</div>
+<div id="call2">
+  <div class="clWho" id="cl2Who">—</div>
+  <div class="clSub" id="cl2Sub">ГУДКИ...</div>
+  <div class="clTalk" id="cl2Talk"></div>
+  <div class="clRow">
+    <button class="yes" id="cl2Yes">📵 ОТМЕНИТЬ</button>
+    <button class="no" id="cl2No">✖ ЗАКРЫТЬ</button>
+  </div>
 </div>
 
 <script src="accounts.js?v=7"></script>
@@ -2813,11 +2869,187 @@ function drawClock(){
   ctx.textAlign = 'left';
 }
 
+/* ============================== ТЕЛЕФОН (клавиша P) ============================== */
+const phoneEl = document.getElementById('phone');
+/* телефонная книга: те же номера, что и в 3D-версии */
+const CONTACTS = [
+  {name:'МА', num:'100', cls:'gift', eff:'heal',
+   text:'Сынок, поешь нормально и выспись. Я за тебя всё уже отработала!'},
+  {name:'ТАКСИ', num:'200', cls:'gift', eff:'taxi',
+   text:'Твоя тачка у бордюра, ждать не будем. Садись!'},
+  {name:'КРЭШ', num:'300', cls:'gift', eff:'cash',
+   text:'Бро, держи немного на штаны — сам знаю, как тут тяжело.'},
+  {name:'ДЕКС', num:'400', cls:'gift', eff:'stash',
+   text:'Ящик с бабками брошен на дороге. Метку скинул — бери!'},
+  {name:'МЕЙДЖОР', num:'500', cls:'warn', eff:'heat',
+   text:'Твоё имя засветилось в базе. Я всё сказал — теперь беги!'},
+  {name:'НЕИЗВЕСТНЫЙ №', num:'0911', cls:'warn', eff:'mystery',
+   text:'...мы знаем, где ты живёшь. Это конец.'}
+];
+const callCd = {};
+let curCall = null, callState = 'none', outTimer = null;
+
+function phoneOpen(){
+  const on = phoneEl.style.display === 'block';
+  phoneEl.style.display = on ? 'none' : 'block';
+  S.paused = !on;
+  if(!on){
+    const d = new Date();
+    document.getElementById('phClock').textContent =
+      (d.getHours() < 10 ? '0' : '') + d.getHours() + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes();
+    renderContacts();
+  }
+}
+function renderContacts(){
+  const box = document.getElementById('phContacts');
+  if(!box) return;
+  box.innerHTML = '';
+  CONTACTS.forEach(c => {
+    const b = document.createElement('button');
+    b.className = 'phC ' + (c.cls || '');
+    b.textContent = c.name + ' • ' + c.num;
+    b.addEventListener('click', () => callNumber(c.num));
+    box.appendChild(b);
+  });
+}
+function callLogLine(c, ok){
+  const log = document.getElementById('phCallLog');
+  if(!log) return;
+  const nm = c.name || c.who || ('№ ' + c.num);
+  const d = new Date();
+  const hh = (d.getHours() < 10 ? '0' : '') + d.getHours();
+  const mm = (d.getMinutes() < 10 ? '0' : '') + d.getMinutes();
+  const div = document.createElement('div');
+  div.textContent = hh + ':' + mm + ' • ' + (ok ? '📞 ' : '❌ ') + nm + ' • ' + c.num;
+  if(!ok) div.style.color = '#e0453a';
+  log.insertBefore(div, log.firstChild);
+  while(log.children.length > 7) log.removeChild(log.lastChild);
+}
+/* ===== ИСХОДЯЩИЙ ЗВОНОК ===== */
+function callNumber(raw){
+  if(S.state !== 'play') return;
+  const num = String(raw == null ? '' : raw).trim();
+  const c = CONTACTS.find(x => x.num === num);
+  if(!c){
+    callLogLine({name:'№ ' + (num || '—'), num:num}, false);
+    showMsg('АБОНЕНТ НЕ НАЙДЕН', 'набери номер из списка контактов', 2.4);
+    blip(180, 0.12, 0.25, 'square');
+    return;
+  }
+  if(phoneEl.style.display === 'block') phoneOpen();        // закрываем телефон
+  curCall = {who:c.name, text:c.text, eff:c.eff, num:c.num, out:true};
+  callState = 'ring';
+  document.getElementById('cl2Who').textContent = c.name;
+  const t = document.getElementById('cl2Talk');
+  t.style.display = 'none'; t.textContent = '';
+  document.getElementById('cl2Sub').textContent = 'ИСХОДЯЩИЙ • ' + c.num + ' • ГУДКИ...';
+  document.getElementById('cl2Yes').textContent = '📵 ОТМЕНИТЬ';
+  document.getElementById('cl2No').textContent = '✖ ЗАКРЫТЬ';
+  document.getElementById('call2').style.display = 'block';
+  S.paused = true;
+  blip(430, 0.1, 0.4, 'sine');
+  setTimeout(() => { if(callState === 'ring') blip(430, 0.1, 0.4, 'sine'); }, 650);
+  outTimer = setTimeout(() => { if(callState === 'ring' && curCall && curCall.out) answerCall(); }, 1700);
+}
+function answerCall(){
+  if(!curCall || callState !== 'ring') return;
+  callState = 'talk';
+  document.getElementById('cl2Sub').textContent = curCall.who + ' — ОТВЕТИЛ';
+  const t = document.getElementById('cl2Talk');
+  t.style.display = 'block';
+  t.textContent = '«' + curCall.text + '»';
+  document.getElementById('cl2Yes').textContent = '📴 ПОЛОЖИТЬ';
+  document.getElementById('cl2No').textContent = '📴 ЗАВЕРШИТЬ';
+  blip(520, 0.09, 0.3, 'sine');
+}
+function endCall(talked){
+  if(outTimer){ clearTimeout(outTimer); outTimer = null; }
+  document.getElementById('call2').style.display = 'none';
+  document.getElementById('cl2Yes').textContent = '📵 ОТМЕНИТЬ';
+  document.getElementById('cl2No').textContent = '✖ ЗАКРЫТЬ';
+  callState = 'none';
+  S.paused = false;
+  if(talked && curCall){
+    callLogLine(curCall, true);
+    applyCallEff(curCall);
+  } else if(curCall && curCall.out){
+    callLogLine(curCall, false);
+  }
+  curCall = null;
+}
+/* эффект разговора: помощь, деньги, розыск */
+function applyCallEff(c){
+  const nm = c.name || c.who || ('№ ' + c.num);
+  const now = S.time, until = callCd[c.num] || 0;
+  if(now < until){
+    showMsg(nm + ': «ПОЗЖЕ ПОЗВОНИШЬ»',
+            'следующий звонок через ' + Math.ceil(until - now) + ' сек', 2.6);
+    return;
+  }
+  switch(c.eff){
+    case 'heal':
+      S.health = S.maxHealth;
+      showMsg('МА ПОЗВОНИЛА', 'ты поел и выспался • здоровье полностью', 3.2);
+      callCd[c.num] = now + 75; break;
+    case 'taxi':{
+      const a = rand(0, Math.PI * 2);
+      const car = makeCar(player.x + Math.cos(a) * 150, player.y + Math.sin(a) * 150, a, 'parked', '#ffd23f');
+      cars.push(car);
+      showMsg('ТАКСИ ПРИБЫЛО', 'жёлтая машина рядом • F — сесть', 3.2);
+      blip(430, 0.1, 0.26, 'sine');
+      callCd[c.num] = now + 75; break;
+    }
+    case 'cash':{
+      const bonus = randi(200, 500);
+      S.money += bonus;
+      showMsg('КРЭШ ПЕРЕВЁЛ ДЕНЬГИ', '+$' + bonus, 3);
+      callCd[c.num] = now + 110; break;
+    }
+    case 'stash':{
+      const p = randomRoadPoint(150);
+      pickups.push({x:p.x, y:p.y, type:'cash', val:600, t:0});
+      showMsg('ДЕКС СКИНУЛ МЕТКУ', 'ящик с $600 на дороге • бери', 3.4);
+      blip(600, 0.14, 0.3, 'square');
+      callCd[c.num] = now + 130; break;
+    }
+    case 'heat':
+      S.wanted = Math.max(S.wanted, 2); S.crimeTime = 0;
+      showMsg('МЕЙДЖОР СЛИЛ ТЕБЯ', 'розыск 2★ • копы уже едут', 3.4);
+      callCd[c.num] = now + 140; break;
+    case 'mystery':
+      S.shake = 16;
+      showMsg('⚠ НЕИЗВЕСТНЫЙ НОМЕР', 'кто-то знает, где ты живёшь', 3.6);
+      blip(160, 0.16, 0.4, 'square');
+      callCd[c.num] = now + 180; break;
+  }
+  statAdd('calls', 1);
+  ach('caller');
+}
+document.getElementById('phClose').addEventListener('click', phoneOpen);
+document.getElementById('phDialGo').addEventListener('click', () => {
+  const inp = document.getElementById('phDialIn');
+  callNumber(inp.value); inp.value = '';
+});
+document.getElementById('phDialIn').addEventListener('keydown', e => {
+  e.stopPropagation();
+  if(e.key === 'Enter'){ callNumber(e.target.value); e.target.value = ''; }
+});
+document.getElementById('cl2Yes').addEventListener('click', () => {
+  if(!curCall) return;
+  if(callState === 'ring'){ if(curCall.out){ endCall(false); return; } answerCall(); }
+  else if(callState === 'talk') endCall(true);
+});
+document.getElementById('cl2No').addEventListener('click', () => { if(curCall) endCall(false); });
+
 /* ============================== ВВОД ============================== */
 window.addEventListener('keydown', e => {
   keys[e.code] = true;
   if(['Tab','Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].indexOf(e.code) >= 0) e.preventDefault();
   if(S.state !== 'play') return;
+  if(e.target && e.target.tagName === 'INPUT') return;        // печатаем номер в телефоне
+  // ===== ТЕЛЕФОН =====
+  if(e.code === 'KeyP'){ phoneOpen(); return; }
+  if(phoneEl.style.display === 'block'){ if(e.code === 'Escape') phoneOpen(); return; }
   if(/^Digit[1-8]$/.test(e.code)){ switchWeapon(parseInt(e.code.slice(5), 10) - 1); return; }
   if(e.code === 'KeyQ'){ cycleWeapon(-1); return; }
   if(e.code === 'KeyE'){ cycleWeapon(1); return; }
@@ -2932,6 +3164,7 @@ window.__gta = {S, player, cam, cars, peds, pickups, M, mouse, keys, shoot, bull
   updateProjectiles, boom, helis, spawnHeli, damageHeli, updateHelis, spawnTank, driveCop, driveTank,
   pathFree, steerAround, drawHUD, drawMinimap, spawnOfficer, retireOfficer, starsWanted,
   PLACES, placeNear, enterPlace, exitPlace, placeAction, placeUpdate, placeBuy,
+  phoneOpen, callNumber, CONTACTS, answerCall, callStateGet: () => callState,
   drones, bombs, spawnDrone, damageDrone, updateDrones, updateBombs};
 requestAnimationFrame(loop);
 boot();
