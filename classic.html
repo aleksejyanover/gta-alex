@@ -71,7 +71,7 @@
   <div class="note">НУЖНА КЛАВИАТУРА И МЫШЬ</div>
 </div>
 
-<script src="accounts.js?v=6"></script>
+<script src="accounts.js?v=7"></script>
 <script>
 (function(){
 "use strict";
@@ -396,7 +396,7 @@ function cycleWeapon(dir){
     if(S.owned[i]){ switchWeapon(i); return; }
   }
 }
-const cam = { x:WORLD/2, y:WORLD/2, zoom:1.1, tz:1.1 };
+const cam = { x:WORLD/2, y:WORLD/2, zoom:1.1, tz:1.1, uz:0 };
 const player = { x:0, y:0, angle:0, r:11, alive:true, shootCd:0, anim:0, hurtCd:0, panic:0 };
 const keys = {}, mouse = { x:0, y:0, down:false, edge:false };
 
@@ -1661,6 +1661,8 @@ function updateCamera(dt){
     ty += Math.sin(S.inCar.angle) * Math.abs(S.inCar.speed) * 0.22;
     tz = 1.12 - clamp(Math.abs(S.inCar.speed) / 480, 0, 1) * 0.3;
   } else tz = 1.18;
+  /* + пользовательский зум колесом мыши (удаляем/приближаем камеру) */
+  tz = clamp(tz + cam.uz, 0.55, 2.6);
   cam.x = lerp(cam.x, tx, clamp(dt * 6, 0, 1));
   cam.y = lerp(cam.y, ty, clamp(dt * 6, 0, 1));
   cam.zoom = lerp(cam.zoom, tz, clamp(dt * 2.4, 0, 1));
@@ -2834,9 +2836,19 @@ window.addEventListener('keyup', e => { keys[e.code] = false; });
 window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
 window.addEventListener('mousedown', e => { if(e.button === 0){ mouse.down = true; mouse.edge = true; } });
 window.addEventListener('mouseup', e => { if(e.button === 0) mouse.down = false; });
+let wheelMsgT = 0;
 window.addEventListener('wheel', e => {
   if(S.state !== 'play' || S.paused) return;
-  cycleWeapon(e.deltaY > 0 ? 1 : -1);
+  /* КОЛЕСО МЫШИ — приближение/отдаление камеры (оружие: 1-8, Q/E) */
+  const nz = clamp(cam.uz + (e.deltaY > 0 ? -0.14 : 0.14), -0.6, 1.5);
+  if(nz === cam.uz) return;
+  cam.uz = nz;
+  const now = performance.now();
+  if(now - wheelMsgT > 500){
+    wheelMsgT = now;
+    showMsg('🔍 КАМЕРА', cam.uz <= -0.59 ? 'ближе к герою' : (cam.uz >= 1.49 ? 'дальше от героя'
+           : (cam.uz > 0 ? 'отдалилась' : 'приблизилась')), 1.4);
+  }
 }, {passive:true});
 window.addEventListener('contextmenu', e => e.preventDefault());
 

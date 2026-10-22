@@ -185,8 +185,15 @@
     <div id="phChatLog" style="margin-top:6px;max-height:110px;overflow:auto;font-size:11px;color:#9dffb0;"></div>
   </div>
   <div class="phPanel" id="pCalls">
-    <b>ПОСЛЕДНИЕ ЗВОНКИ</b><br>
-    КРЭШ — 2 мин назад<br>МА — вчера<br>НЕИЗВЕСТНЫЙ № — 3 дня назад
+    <b>ИСХОДЯЩИЕ ЗВОНКИ</b><br>
+    <span style="color:#6e6f78">Тапни контакт или набери номер</span>
+    <div id="phContacts" style="margin-top:6px;max-height:150px;overflow:auto;"></div>
+    <div style="display:flex;gap:5px;margin-top:8px;">
+      <input id="phDialIn" maxlength="6" placeholder="номер..." inputmode="numeric"
+        style="flex:1;min-width:0;padding:8px;background:#1a1c24;border:1px solid #343641;color:#e8e9ef;font-family:monospace;font-size:13px;">
+      <button id="phDialGo" style="padding:8px 12px;background:#2fbf5f;border:none;color:#04160a;cursor:pointer;font-family:inherit;font-weight:bold;">📞</button>
+    </div>
+    <div id="phCallLog" style="margin-top:6px;max-height:62px;overflow:auto;font-size:11px;color:#8b8d98;"></div>
   </div>
   <div class="phPanel" id="pBank">
     <b>БАНК ALEX CITY</b><br>Баланс: <span id="phMoney">$0</span><br>
@@ -226,7 +233,7 @@
 </div>
 
 <script src="three.min.js"></script>
-<script src="accounts.js?v=6"></script>
+<script src="accounts.js?v=7"></script>
 <script>
 (function(){
 "use strict";
@@ -1031,7 +1038,11 @@ function makePlace(b, kind, name, price){
   /* сама дверь: дубовая створка на петле, стекло, ручка */
   if(b.mesh){
     const pivot = new THREE.Group();
-    pivot.position.set(ds.x - b.cx, -b.hgt/2, ds.z - b.cz);
+    /* петля у КРАЯ двери (сдвиг 0.7 вдоль створки) — иначе створка крутится
+       вокруг середины проёма и половина её уходит в стену */
+    pivot.position.set(ds.x - b.cx - 0.7 * Math.cos(ds.rot),
+                      -b.hgt/2,
+                      ds.z - b.cz + 0.7 * Math.sin(ds.rot));
     pivot.rotation.y = ds.rot;
     const dm = HQ
       ? new THREE.MeshStandardMaterial({color:0x6a452a, roughness:0.6, metalness:0.08})
@@ -1453,7 +1464,7 @@ function enterPlace(p){
   /* вход всегда свободный — покупка отдельное действие (клавиша R снаружи) */
   S.inside = {p, ex:player.x, ez:player.z};
   p.b.entered = true;
-  p.b.mesh.visible = false; if(p.b.lip) p.b.lip.visible = false;
+  /* здание НЕ прячем — оно остаётся целым, ты просто оказываешься внутри него */
   buildInterior(p);
   player.x = p.b.cx; player.z = p.b.cz;
   hero.g.visible = !ED.fp;
@@ -1474,8 +1485,7 @@ function enterPlace(p){
 function exitPlace(){
   const ins = S.inside; if(!ins) return;
   const p = ins.p;
-  p.b.entered = false;
-  p.b.mesh.visible = true; if(p.b.lip) p.b.lip.visible = true;
+  p.b.entered = false;                          // здание всё это время было целым
   if(p.int){ scene.remove(p.int); p.int = null; }
   p.npcs = null;                               // люди внутри строятся заново при входе
   S.inside = null;
@@ -1774,14 +1784,16 @@ function cycleWeapon(dir){
   }
 }
 const camState = { yaw:0.6, pitch:0.26, dist:7, mouseIdle:99, fovKick:0, zoom:0 };
-/* F3 — отдалить камеру, F4 — приближить. 0 = обычное первое лицо. */
-function camZoom(dir){
+/* Приближение/отдаление камеры: КОЛЕСО МЫШИ, F3 (дальше), F4 (ближе), клавиши - и +.
+   0 = обычное первое лицо, дальше — отъезд камеры за спину (видно героя). */
+const ZOOM_HOW = 'колесо мыши • F3 — дальше • F4 — ближе';
+function camZoom(dir, step){
   const z0 = camState.zoom;
-  camState.zoom = Math.max(0, Math.min(14, z0 + dir * 1.5));
+  camState.zoom = Math.max(0, Math.min(14, z0 + dir * (step || 1.5)));
   if(camState.zoom === z0) return;
-  if(camState.zoom < 0.05) showMsg('🔍 ПЕРВОЕ ЛИЦО', 'F3 — отдалить • F4 — приближить', 1.8);
+  if(camState.zoom < 0.05) showMsg('🔍 ПЕРВОЕ ЛИЦО', ZOOM_HOW, 1.8);
   else showMsg('🔍 КАМЕРА: ' + camState.zoom.toFixed(1) + ' м',
-               (camState.zoom > z0 ? 'отдалилась' : 'приблизилась') + ' • F3 — дальше, F4 — ближе', 1.8);
+               (camState.zoom > z0 ? 'отдалилась' : 'приблизилась') + ' • ' + ZOOM_HOW, 1.8);
   blip(camState.zoom > z0 ? 520 : 700, 0.05, 0.2, 'square');
 }
 const player = { x:WORLD/2, z:WORLD/2, angle:0, r:0.6, alive:true, shootCd:0, anim:0, hurtCd:0, moving:0, dashCd:0 };
@@ -5803,12 +5815,27 @@ function phoneOpen(){
     const d = new Date();
     document.getElementById('phClock').textContent =
       (d.getHours() < 10 ? '0' : '') + d.getHours() + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes();
+    renderContacts();                                  // список контактов для исходящих
     // поддержка — только в новой версии (GTA 6)
     const sup = document.querySelector('#phone .phApp.support');
     if(sup) sup.style.display = ED.support ? '' : 'none';
   }
 }
 document.getElementById('phClose').addEventListener('click', phoneOpen);
+/* ===== НАБОР НОМЕРА: кнопка 📞 или Enter ===== */
+document.getElementById('phDialGo').addEventListener('click', () => {
+  const inp = document.getElementById('phDialIn');
+  callNumber(inp.value);
+  inp.value = '';
+});
+document.getElementById('phDialIn').addEventListener('keydown', e => {
+  e.stopPropagation();
+  if(e.key === 'Enter'){
+    const inp = document.getElementById('phDialIn');
+    callNumber(inp.value);
+    inp.value = '';
+  }
+});
 document.querySelectorAll('#phone .phApp').forEach(b => {
   b.addEventListener('click', () => {
     const id = b.getAttribute('data-panel');
@@ -5891,6 +5918,153 @@ const CALL_SCRIPTS = [
   {who:'НЕИЗВЕСТНЫЙ №', text:'...мы знаем, где ты живёшь. Это конец.'}
 ];
 let callTimer = rand(40, 90), curCall = null, callState = 'none';   // none | ring | talk
+let outTimer = null;                       // таймер гудков исходящего звонка
+
+/* ===== КОНТАКТЫ: исходящие звонки (клик по контакту или свой номер) ===== */
+const CONTACTS = [
+  {name:'МА',        num:'100',  eff:'heal',
+   text:'Сынок, поешь нормально и выспись. Я за тебя всё уже отработала!'},
+  {name:'ТАКСИ',     num:'200',  eff:'taxi',
+   text:'Твоя тачка у бордюра, ждать не будем. Садись!'},
+  {name:'КРЭШ',      num:'300',  eff:'cash',
+   text:'Бро, держи немного на штаны — сам знаю, как тут тяжело.'},
+  {name:'ДЕКС',      num:'400',  eff:'stash',
+   text:'На бетонной площадке брошен ящик с бабками. Метку скинул — бери!'},
+  {name:'МЕЙДЖОР',   num:'500',  eff:'heat',
+   text:'Твоё имя засветилось в базе. Я всё сказал — теперь беги!'},
+  {name:'НЕИЗВЕСТНЫЙ №', num:'0911', eff:'killer',
+   text:'...мы знаем, где ты живёшь. Это конец.'},
+  {name:'ПОДДЕРЖКА ИГРОКОВ', num:'112', eff:'support',
+   text:'Служба поддержки GTA АЛЕКС: +7 995 446-95-15. Пишите — поможем!'}
+];
+const callCd = {};                          // кулдаун по номеру, чтобы не фармить
+
+function callLogLine(c, ok){
+  const log = document.getElementById('phCallLog');
+  if(!log) return;
+  const nm = c.name || c.who || ('№ ' + c.num);
+  const d = new Date();
+  const hh = (d.getHours() < 10 ? '0' : '') + d.getHours();
+  const mm = (d.getMinutes() < 10 ? '0' : '') + d.getMinutes();
+  const div = document.createElement('div');
+  div.textContent = hh + ':' + mm + ' • ' + (ok ? '📞 ' : '❌ ') + nm + ' • ' + c.num;
+  if(!ok) div.style.color = '#e0453a';
+  log.insertBefore(div, log.firstChild);
+  while(log.children.length > 7) log.removeChild(log.lastChild);
+}
+
+function renderContacts(){
+  const box = document.getElementById('phContacts');
+  if(!box) return;
+  box.innerHTML = '';
+  CONTACTS.forEach(c => {
+    if(c.num === '112' && !ED.support) return;      // поддержка игроков — только в GTA 6
+    const a = document.createElement('a');
+    a.href = '#'; a.className = 'call';
+    a.textContent = c.name + ' • ' + c.num;
+    a.style.marginTop = '5px'; a.style.padding = '8px'; a.style.fontSize = '11px';
+    a.addEventListener('click', ev => { ev.preventDefault(); callNumber(c.num); });
+    box.appendChild(a);
+  });
+}
+
+/* ===== ИСХОДЯЩИЙ ЗВОНОК ===== */
+function callNumber(raw){
+  if(S.state !== 'play') return;
+  const num = String(raw == null ? '' : raw).trim();
+  const c = CONTACTS.find(x => x.num === num);
+  if(!c){
+    callLogLine({name:'№ ' + (num || '—'), num}, false);
+    showMsg('АБОНЕНТ НЕ НАЙДЕН', 'набери номер из списка контактов', 2.4);
+    blip(180, 0.12, 0.25, 'square');
+    return;
+  }
+  if(phoneEl.style.display === 'block') phoneOpen();      // закрываем телефон
+  if(document.pointerLockElement) document.exitPointerLock();
+  curCall = {who:c.name, text:c.text, eff:c.eff, num:c.num, out:true};
+  callState = 'ring';
+  document.getElementById('clWho').textContent = c.name;
+  const talk = document.getElementById('clTalk');
+  talk.style.display = 'none'; talk.innerHTML = '';
+  document.querySelector('#call .clSub').textContent = 'ИСХОДЯЩИЙ • ' + c.num + ' • ГУДКИ...';
+  document.getElementById('clYes').textContent = '📵 ОТМЕНИТЬ';
+  document.getElementById('clNo').textContent = '✖ ЗАКРЫТЬ';
+  document.getElementById('call').style.display = 'block';
+  S.paused = true;
+  blip(430, 0.1, 0.4, 'sine');
+  setTimeout(() => { if(callState === 'ring') blip(430, 0.1, 0.4, 'sine'); }, 650);
+  outTimer = setTimeout(() => { if(callState === 'ring' && curCall && curCall.out) answerCall(); }, 1700);
+}
+
+/* собеседник поднял трубку */
+function answerCall(){
+  if(!curCall || callState !== 'ring') return;
+  callState = 'talk';
+  document.querySelector('#call .clSub').textContent =
+    curCall.who + (curCall.out ? ' — ОТВЕТИЛ' : ' — РАЗГОВОР');
+  const t = document.getElementById('clTalk');
+  t.style.display = 'block';
+  t.textContent = '«' + curCall.text + '»';
+  document.getElementById('clYes').textContent = '📴 ПОЛОЖИТЬ';
+  document.getElementById('clNo').textContent = '📴 ЗАВЕРШИТЬ';
+  blip(520, 0.09, 0.3, 'sine');
+}
+
+/* награда/эффект за разговор */
+function applyCallEff(c){
+  const nm = c.name || c.who || ('№ ' + c.num);
+  const now = S.time, until = callCd[c.num] || 0;
+  if(now < until){
+    showMsg(nm + ': «ПОЗЖЕ ПОЗВОНИШЬ»',
+            'следующий звонок через ' + Math.ceil(until - now) + ' сек', 2.6);
+    return;
+  }
+  switch(c.eff){
+    case 'heal':
+      S.health = S.maxHealth;
+      showMsg('МА ПОЗВОНИЛА', 'ты поел и выспался • здоровье полностью', 3.2);
+      callCd[c.num] = now + 75; break;
+    case 'taxi':{
+      const a = rand(-Math.PI, Math.PI);
+      const car = makeCar(player.x + Math.cos(a) * 7.5, player.z + Math.sin(a) * 7.5,
+                          a + Math.PI / 2, 'taxi', 0xffd23f);
+      car.type = 'parked';
+      showMsg('ТАКСИ ПРИБЫЛО', 'машина ждёт рядом • F — сесть', 3.2);
+      blip(430, 0.1, 0.26, 'circle');
+      callCd[c.num] = now + 75; break;
+    }
+    case 'cash':{
+      const bonus = randi(200, 500);
+      S.money += bonus;
+      sfx.money();
+      showMsg('КРЭШ ПЕРЕВЁЛ ДЕНЬГИ', '+$' + bonus, 3);
+      callCd[c.num] = now + 110; break;
+    }
+    case 'stash':{
+      const p = randomRoadPoint(6);
+      pickups.push(makePickup(p.x, p.z, 'cash', 600));
+      blip(600, 0.14, 0.3, 'square');
+      showMsg('ДЕКС СКИНУЛ МЕТКУ', 'ящик с $600 на карте • бери', 3.4);
+      callCd[c.num] = now + 130; break;
+    }
+    case 'heat':
+      S.wanted = Math.max(S.wanted, 2); S.crimeTime = 0;
+      showMsg('МЕЙДЖОР СЛИЛ ТЕБЯ', 'розыск 2★ • копы уже едут', 3.4);
+      callCd[c.num] = now + 140; break;
+    case 'killer':{
+      spawnKiller();
+      showMsg('⚠ НЕИЗВЕСТНЫЙ НОМЕР', 'кто-то уже идёт к тебе', 3.6);
+      blip(160, 0.16, 0.4, 'square');
+      callCd[c.num] = now + 180; break;
+    }
+    case 'support':
+      showMsg('🆘 ПОДДЕРЖКА ИГРОКОВ',
+              '+7 995 446-95-15 • gta.alex.support@gmail.com', 5);
+      callCd[c.num] = now + 30; break;
+  }
+  statAdd('calls', 1);
+  ach('caller');
+}
 function incomingCall(){
   if(S.state !== 'play' || S.paused || phoneEl.style.display === 'block') { callTimer = 12; return; }
   callState = 'ring';
@@ -5910,13 +6084,8 @@ function incomingCall(){
 function callAccept(){
   if(!curCall) return;
   if(callState === 'ring'){
-    callState = 'talk';
-    document.querySelector('#call .clSub').textContent = curCall.who + ' — РАЗГОВОР';
-    const t = document.getElementById('clTalk');
-    t.style.display = 'block';
-    t.textContent = '«' + curCall.text + '»';
-    document.getElementById('clYes').textContent = '📴 ПОЛОЖИТЬ';
-    blip(520, 0.09, 0.3, 'sine');
+    if(curCall.out){ endCall(false); return; }   // исходящий — кнопка «ОТМЕНИТЬ»
+    answerCall();
   } else if(callState === 'talk'){
     endCall(true);
   }
@@ -5927,6 +6096,7 @@ function callDecline(){
   endCall(false);
 }
 function endCall(talked){
+  if(outTimer){ clearTimeout(outTimer); outTimer = null; }
   document.getElementById('call').style.display = 'none';
   document.getElementById('clYes').textContent = '📞 ПРИНЯТЬ';
   document.getElementById('clNo').textContent = '✖ ОТКЛОНИТЬ';
@@ -5934,12 +6104,18 @@ function endCall(talked){
   S.paused = false;
   if(talked && curCall){
     receiveMsg(curCall.who, curCall.text);
-    // звонок иногда даёт награду
-    if(Math.random() < 0.5){
+    if(curCall.out){
+      /* исходящий: собеседник ответил — эффект звонка и запись в журнал */
+      callLogLine(curCall, true);
+      applyCallEff(curCall);
+    } else if(Math.random() < 0.5){
+      // входящий звонок иногда даёт награду
       const bonus = randi(100, 400);
       S.money += bonus;
       showMsg('РАБОТА ПО ТЕЛЕФОНУ', '+$' + bonus, 2.6);
     }
+  } else if(curCall && curCall.out){
+    callLogLine(curCall, false);          // сорвал набор
   }
   curCall = null;
 }
@@ -6024,9 +6200,9 @@ window.addEventListener('keydown', e => {
   }
   if(e.code === 'KeyR'){ if(S.inside) placeAction(); else placeBuy(); return; }
   if(e.code === 'KeyF') tryEnterCar();
-  // ===== ЗУМ КАМЕРЫ: F3 — отдалить, F4 — приближить =====
-  if(e.code === 'F3'){ camZoom(+1); return; }
-  if(e.code === 'F4'){ camZoom(-1); return; }
+  // ===== ЗУМ КАМЕРЫ: F3/- — отдалить, F4/+ — приближить (также колесо мыши) =====
+  if(e.code === 'F3' || e.code === 'Minus' || e.code === 'NumpadSubtract'){ camZoom(+1); return; }
+  if(e.code === 'F4' || e.code === 'Equal' || e.code === 'NumpadAdd'){ camZoom(-1); return; }
   // ===== АРСЕНАЛ: клавиши 1-8 =====
   if(/^Digit[1-8]$/.test(e.code)){
     switchWeapon(parseInt(e.code.slice(5), 10) - 1);
@@ -6069,8 +6245,11 @@ window.addEventListener('mouseup', e => {
 window.addEventListener('wheel', e => {
   if(S.state !== 'play' || S.paused) return;
   if(phoneEl.style.display === 'block') return;
-  cycleWeapon(e.deltaY > 0 ? 1 : -1);
-}, {passive:true});
+  /* колесо мыши — приближение/отдаление камеры;
+     смена оружия осталась на 1-8 и Q/E */
+  e.preventDefault();
+  camZoom(e.deltaY > 0 ? +1 : -1, 1.2);
+}, {passive:false});
 document.addEventListener('pointerlockchange', () => {
   mouse.locked = document.pointerLockElement === glCanvas;
   if(!mouse.locked){ mouse.down = false; mouse.rdown = false; S.aim = false; }
@@ -6235,6 +6414,7 @@ window.__g3 = {S, M, player, camState, cars, peds, pickups, bullets, hero, scene
   dealerCar, syncHeroVis,
   SPECIALS, spawnGuard, spawnFleePed, makeBike, bikeRider,
   heliNear, enterHeli, exitHeli, flyHeli, camZoom,
+  callNumber, CONTACTS, answerCall, callStateGet: () => callState,
   post: () => post,
   NET, OPT, netStart, netStop, netCount, receiveMsg, incomingCall, inbox,
   LAW, lawHunt, addCrime,
