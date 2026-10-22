@@ -233,7 +233,7 @@
 </div>
 
 <script src="three.min.js"></script>
-<script src="accounts.js?v=7"></script>
+<script src="accounts.js?v=8"></script>
 <script>
 (function(){
 "use strict";
@@ -1698,7 +1698,8 @@ const S = {
   inCar:null, kills:0, dead:false, deadT:0,
   nitro:100, shake:0, msg:null, muted:false, dayF:1, nightF:0, unread:0, garSaved:null,
   inside:null,                                  // {p, ex, ez} — игрок внутри дома/компании
-  inHeli:null                                   // вертолёт под игроком
+  inHeli:null,                                  // вертолёт под игроком
+  jetpack:false, jetY:0, jetV:0                 // реактивный ранец: высота и вертикальная скорость
 };
 /* ==================== АРСЕНАЛ: ножики, пистолеты, винтовки, базуки ==================== */
 const WEAPONS = [
@@ -4120,6 +4121,7 @@ function tryEnterCar(){
     if(!best || hd < bd){ enterHeli(hz); return true; }
   }
   if(best){
+    S.jetY = 0; S.jetV = 0;                          // джетпак: приземлился перед посадкой
     const wasFree = (best.type === 'parked' || best.type === 'traffic');
     /* --- МОТОЦИКЛ С БАЙКЕРОМ: сбросить с него и уехать --- */
     if(best.type === 'bike'){
@@ -4391,7 +4393,7 @@ function updatePlayer(dt){  player.shootCd -= dt; player.hurtCd -= dt; player.da
     if(keys.KeyS || keys.ArrowDown) thr = -0.55;
     if(keys.KeyA || keys.ArrowLeft) st = -1;
     if(keys.KeyD || keys.ArrowRight) st = 1;
-    const hand = keys.Space;
+    const hand = c.jet ? false : keys.Space;      // у джет-байка ПРОБЕЛ = взлёт, а не ручник
     const boost = (keys.ShiftLeft || keys.ShiftRight) && S.nitro > 0 && thr > 0;
     S.nitro = clamp(S.nitro + (boost ? -26 : 9) * dt, 0, 100);
     c.nitro = boost;
@@ -4436,6 +4438,19 @@ function updatePlayer(dt){  player.shootCd -= dt; player.hurtCd -= dt; player.da
       c.steer = lerp(c.steer, st * grip, clamp(dt*8, 0, 1));
     }
     const gripOut = clamp(Math.abs(c.speed) / 8, 0, 1);
+    // ===== ДЖЕТ-БАЙК (секрет из телефона): ПРОБЕЛ — взлёт, CTRL — посадка =====
+    if(c.jet){
+      const up = keys.Space, dn = keys.ControlLeft || keys.ControlRight || keys.KeyC;
+      if(!c.airborne && up){
+        c.airborne = true; c.airH = Math.max(0.06, c.airH || 0);
+        c.peakH = c.airH; c.vy = 4;
+      }
+      if(c.airborne){
+        if(up) c.vy = Math.min(13, c.vy + 22 * dt);
+        else if(dn) c.vy = Math.max(-13, c.vy - 26 * dt);
+        else c.vy = c.vy * (1 - 2.4 * dt);        // почти парение
+      }
+    }
     // ТРАМПЛИНЫ (ГТА Алекс 5): влетел быстро — улетел в воздух
     if(ED.ramps && !c.airborne){
       for(const rp of ramps){
@@ -4451,11 +4466,11 @@ function updatePlayer(dt){  player.shootCd -= dt; player.hurtCd -= dt; player.da
     c.z += Math.sin(c.angle) * c.speed * dt;
     if(c.airborne){
       c.airH += c.vy * dt;
-      c.vy -= 21 * dt;
+      c.vy -= (c.jet ? 2.5 : 21) * dt;            // у джет-байка почти нет гравитации
       c.peakH = Math.max(c.peakH || 0, c.airH);
       if(c.airH <= 0 && c.vy < 0){
         c.airborne = false; c.airH = 0;
-        if((c.peakH || 0) > 1.4){
+        if(!c.jet && (c.peakH || 0) > 1.4){      // у джет-байка полёт — не прыжок, награды нет
           const bonus = Math.round(80 + (c.peakH - 1.4) * 40);
           S.money += bonus;
           statAdd('jumps', 1);
@@ -4502,6 +4517,18 @@ function updatePlayer(dt){  player.shootCd -= dt; player.hurtCd -= dt; player.da
     if(engGain && AC) engGain.gain.setTargetAtTime(0, AC.currentTime, 0.15);
     if(scrGain && AC) scrGain.gain.setTargetAtTime(0, AC.currentTime, 0.1);
     camState.fovKick = lerp(camState.fovKick, 0, clamp(dt*3,0,1));
+    /* ===== ДЖЕТПАК: ПРОБЕЛ — подъём, CTRL — спуск; без газа — плавное снижение ===== */
+    if(S.jetpack){
+      const up = keys.Space, dn = keys.ControlLeft || keys.ControlRight || keys.KeyC;
+      S.jetV = clamp(S.jetV + (up ? 14 : (dn ? -17 : -6)) * dt, -12, 9);
+      S.jetY = Math.max(0, S.jetY + S.jetV * dt);
+      if(S.jetY <= 0){ S.jetY = 0; if(S.jetV < 0) S.jetV = 0; }
+    } else if(S.jetY > 0){                       // ранец отобрали — падение на землю
+      S.jetV = Math.max(-18, S.jetV - 24 * dt);
+      S.jetY = Math.max(0, S.jetY + S.jetV * dt);
+      if(S.jetY <= 0){ S.jetY = 0; S.jetV = 0; }
+    }
+    const jetFly = S.jetY > 0.35;
     const f = {x:Math.cos(camState.yaw), z:Math.sin(camState.yaw)};
     const rt = {x:-f.z, z:f.x};
     let mx = 0, mz = 0;
@@ -4510,24 +4537,26 @@ function updatePlayer(dt){  player.shootCd -= dt; player.hurtCd -= dt; player.da
     if(keys.KeyD || keys.ArrowRight){ mx += rt.x; mz += rt.z; }
     if(keys.KeyA || keys.ArrowLeft){ mx -= rt.x; mz -= rt.z; }
     const l = Math.hypot(mx, mz);
-    let sp = 7;
+    let sp = jetFly ? 11 : 7;                    // в полёте чуть быстрее — «.glide»
     if(player.dashT > 0){ player.dashT -= dt; sp = 17; }
     if(l > 0){
       mx /= l; mz /= l;
       player.x += mx * sp * dt;
       player.z += mz * sp * dt;
-      collideWorld(player, player.r);
+      /* выше крыш — стены не мешают (внизу обычные коллизии) */
+      if(!(jetFly && S.jetY > jetClearance())) collideWorld(player, player.r);
       player.angle = Math.atan2(mz, mx);
       player.anim += dt * (sp > 10 ? 16 : 9);
       player.moving = lerp(player.moving, 1, clamp(dt*8,0,1));
     } else {
       player.moving = lerp(player.moving, 0, clamp(dt*8,0,1));
     }
-    if(keys.Space && player.dashCd <= 0 && l > 0){ player.dashT = 0.22; player.dashCd = 1.4; }
+    if(keys.Space && !jetFly && player.dashCd <= 0 && l > 0){ player.dashT = 0.22; player.dashCd = 1.4; }
     const wCur = WP();
     if(mouse.down && (wCur.auto || wCur.melee || mouse.edge)){ shoot(); mouse.edge = false; }
     // анимация героя
-    hero.g.position.set(player.x, 0, player.z);
+    hero.g.position.set(player.x, S.jetY, player.z);
+    jetFx(jetFly && S.jetV > 0.4);               // пламя ранца при подъёме
     hero.g.rotation.y = -player.angle;
     const sw = Math.sin(player.anim) * 0.75 * player.moving;
     hero.legL.rotation.z = sw; hero.legR.rotation.z = -sw;
@@ -4698,6 +4727,7 @@ function heliNear(){
 }
 function enterHeli(h){
   S.inHeli = h; h.flying = true; h.takingOff = 1.6;
+  S.jetY = 0; S.jetV = 0;                         // джетпак: сел в борт — приземлился
   hero.g.visible = false;
   camState.yaw = h.angle;
   statAdd('heliFlights', 1);
@@ -4771,6 +4801,48 @@ function flyHeli(h, dt){
   h.canExit = (h.y < 0.35 && Math.abs(h.speed) < 4.5);      // посадка состоялась
 }
 
+/* ===== ДЖЕТПАК: модель на спине героя + пламя ===== */
+function jetFx(on){
+  const m = S.jetModel;
+  if(!m) return;
+  for(const f of m.flames){
+    f.visible = !!on;
+    if(on) f.scale.setScalar(rand(0.8, 1.25));
+  }
+}
+function makeJetModel(){
+  if(S.jetModel) return S.jetModel;
+  const g = new THREE.Group();
+  const pack = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.55, 0.46),
+    new THREE.MeshPhongMaterial({color:0x2c313a, shininess:70}));
+  pack.castShadow = true;
+  g.add(pack);
+  for(const zz of [-0.16, 0.16]){                 // баки
+    const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.5, 10),
+      new THREE.MeshPhongMaterial({color:0xc0392b, shininess:110}));
+    tank.position.set(-0.05, 0.06, zz);
+    g.add(tank);
+  }
+  const flames = [];
+  for(const zz of [-0.16, 0.16]){
+    const fl = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.7, 8),
+      new THREE.MeshBasicMaterial({color:0xffb03a, transparent:true, opacity:0.92}));
+    fl.position.set(-0.05, -0.5, zz);
+    fl.rotation.x = Math.PI;
+    fl.visible = false;
+    g.add(fl); flames.push(fl);
+  }
+  hero.g.add(g);                                  // надеваем на героя (спина — local -X)
+  g.position.set(-0.3, 1.18, 0);
+  S.jetModel = {g, flames};
+  return S.jetModel;
+}
+/* высота, начиная с которой в полёте можно лететь сквозь габарит зданий */
+function jetClearance(){
+  let mx = 0;
+  for(const b of nearbyBuildings(player.x, player.z)) mx = Math.max(mx, b.hgt || 0);
+  return mx + 0.7;
+}
 /* герой виден, когда не в машине/вертолёте и не «чистое» первое лицо.
    При отдалении камеры (F3) модель появляется — видно одежду и причёску. */
 function syncHeroVis(){
@@ -4802,14 +4874,15 @@ function updateCamera(dt){
   const inCar = !!S.inCar;
   const tx = inCar ? S.inCar.x : player.x;
   const tz = inCar ? S.inCar.z : player.z;
-  const ty = inCar ? 1.9 : 1.5;
+  const ty = (inCar ? 1.9 : 1.5) + (inCar ? (S.inCar.airborne ? S.inCar.airH : 0) : S.jetY);
   if(ED.fp){
     // ===== ВИД ОТ ПЕРВОГО ЛИЦА (GTA 5 / GTA 6) =====
     if(inCar && camState.mouseIdle > 0.4)
       camState.yaw = lerpAngle(camState.yaw, S.inCar.angle, 1 - Math.pow(0.02, dt));
     camDesired.set(
       tx + (inCar ? Math.cos(camState.yaw) * 0.35 : 0),
-      (inCar ? 1.42 : 1.62) + (inCar ? Math.sin(S.time * 9) * Math.min(Math.abs(S.inCar.speed) * 0.004, 0.05) : 0),
+      (inCar ? 1.42 : 1.62) + (inCar ? Math.sin(S.time * 9) * Math.min(Math.abs(S.inCar.speed) * 0.004, 0.05)
+                                     + (S.inCar.airborne ? S.inCar.airH : 0) : S.jetY),
       tz + (inCar ? Math.sin(camState.yaw) * 0.35 : 0));
     /* F3/F4 — отодвинуть камеру назад по направлению взгляда.
        Смещение входит в ЦЕЛЕВУЮ точку, иначе сглаживание будет с ним бороться
@@ -5939,6 +6012,76 @@ const CONTACTS = [
 ];
 const callCd = {};                          // кулдаун по номеру, чтобы не фармить
 
+/* ===== СЕКРЕТНАЯ ЛИНИЯ: техника и снаряжение по вызову (за деньги) ===== */
+const SECRETS = [
+  {name:'ДЖЕТПАК', num:'123', price:2000, eff:'jetpack',
+   text:'Собрал тебе реактивный ранец. ПРОБЕЛ — вверх, CTRL — вниз.'},
+  {name:'ЛЕТЯЩИЙ МОТОЦИКЛ', num:'777', price:2500, eff:'jetbike',
+   text:'Джет-байк ждёт у бордюра. ПРОБЕЛ — взлёт, CTRL — посадка.'},
+  {name:'СЕКРЕТНЫЙ БАГГИ', num:'666', price:3000, eff:'buggy',
+   text:'Багги из закрытого бокса ставлю к выходу.'},
+  {name:'СЕКРЕТНЫЙ СПОРТКАР', num:'555', price:4000, eff:'supercar',
+   text:'Машина из закрытого ангара уже у твоей двери.'},
+  {name:'ВЕРТОЛЁТ', num:'888', price:5000, eff:'heli',
+   text:'Борт ждёт на ближайшей площадке. Садись и лети.'}
+];
+
+/* --- точка подачи: рядом с игроком, желательно на дороге --- */
+function secretSpot(){
+  for(let i = 0; i < 30; i++){
+    const p = randomRoadPoint(0);
+    const d = dist(p.x, p.z, player.x, player.z);
+    if(d > 7 && d < 30) return {x:p.x, z:p.z, a:Math.atan2(player.z - p.z, player.x - p.x)};
+  }
+  const x = clamp(player.x + 8, 4, WORLD - 4), z = clamp(player.z + 6, 4, WORLD - 4);
+  return {x, z, a:Math.atan2(player.z - z, player.x - x)};
+}
+function addRollBar(c){
+  const m = new THREE.MeshPhongMaterial({color:0x14161a, shininess:60});
+  const g = new THREE.Group();
+  for(const zz of [-0.85, 0.85]){
+    const v = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.95, 8), m);
+    v.position.set(-1.6, 1.85, zz);
+    g.add(v);
+  }
+  const top = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 1.8), m);
+  top.position.set(-1.6, 2.3, 0);
+  g.add(top);
+  c.group.add(g);
+}
+function spawnJetBike(){
+  const s = secretSpot();
+  const b = makeBike(s.x, s.z, s.a, 0x20e0ff, 'parked');
+  b.jet = true; b.max = 46; b.sport = true;
+  cars.push(b);
+  showMsg('🏍 ЛЕТЯЩИЙ МОТОЦИКЛ ДОСТАВЛЕН', 'F — сесть • ПРОБЕЛ — взлёт • CTRL — посадка', 4.4);
+  blip(520, 0.14, 0.32, 'sine');
+}
+function spawnSecretCar(buggy){
+  const s = secretSpot();
+  const c = makeCar(s.x, s.z, s.a, 'sport', buggy ? 0xff8a1e : 0x18e0ff);
+  c.max = buggy ? 34 : 40;
+  if(buggy) addRollBar(c);
+  cars.push(c);
+  showMsg(buggy ? '🦖 СЕКРЕТНЫЙ БАГГИ ДОСТАВЛЕН' : '🏎 СЕКРЕТНЫЙ СПОРТКАР ДОСТАВЛЕН',
+          'F — сесть • ждёт у выхода', 4);
+  blip(560, 0.14, 0.3, 'sine');
+}
+function spawnSecretHeli(){
+  const s = secretSpot();
+  const h = makeHeli(s.x, s.z, s.a);
+  h.y = 0; h.parked = true;
+  helis.push(h);
+  showMsg('🚁 ВЕРТОЛЁТ ПОСТАВЛЕН НА ПЛОЩАДКУ', 'F — сесть и взлететь', 4);
+  blip(600, 0.2, 0.3, 'sawtooth');
+}
+function giveJetpack(){
+  S.jetpack = true;
+  makeJetModel();
+  ach('jetpack');
+  showMsg('🎒 ДЖЕТПАК НАДЕТ', 'ПРОБЕЛ — вверх • CTRL — вниз • над крышами можно сквозь дома', 5);
+}
+
 function callLogLine(c, ok){
   const log = document.getElementById('phCallLog');
   if(!log) return;
@@ -5957,31 +6100,47 @@ function renderContacts(){
   const box = document.getElementById('phContacts');
   if(!box) return;
   box.innerHTML = '';
-  CONTACTS.forEach(c => {
-    if(c.num === '112' && !ED.support) return;      // поддержка игроков — только в GTA 6
+  const mk = (c, cls, label) => {
     const a = document.createElement('a');
     a.href = '#'; a.className = 'call';
-    a.textContent = c.name + ' • ' + c.num;
+    a.textContent = label;
     a.style.marginTop = '5px'; a.style.padding = '8px'; a.style.fontSize = '11px';
+    if(cls){ a.style.background = cls.bg; a.style.color = cls.fg; }
     a.addEventListener('click', ev => { ev.preventDefault(); callNumber(c.num); });
     box.appendChild(a);
+  };
+  CONTACTS.forEach(c => {
+    if(c.num === '112' && !ED.support) return;      // поддержка игроков — только в GTA 6
+    mk(c, null, c.name + ' • ' + c.num);
   });
+  /* --- секретная линия --- */
+  const cap = document.createElement('div');
+  cap.textContent = '🔒 СЕКРЕТНАЯ ЛИНИЯ';
+  cap.style.cssText = 'margin-top:10px;color:#f5c542;font-size:11px;letter-spacing:2px;text-align:center;';
+  box.appendChild(cap);
+  SECRETS.forEach(c => mk(c, {bg:'#20242e', fg:'#7fe6ff'},
+    c.name + ' • ' + c.num + ' — $' + c.price));
 }
 
 /* ===== ИСХОДЯЩИЙ ЗВОНОК ===== */
 function callNumber(raw){
   if(S.state !== 'play') return;
   const num = String(raw == null ? '' : raw).trim();
-  const c = CONTACTS.find(x => x.num === num);
+  const c = CONTACTS.concat(SECRETS).find(x => x.num === num);
   if(!c){
     callLogLine({name:'№ ' + (num || '—'), num}, false);
     showMsg('АБОНЕНТ НЕ НАЙДЕН', 'набери номер из списка контактов', 2.4);
     blip(180, 0.12, 0.25, 'square');
     return;
   }
+  if(c.price && S.money < c.price){                // секретная линия — услуга платная
+    showMsg('НЕДОСТАТОЧНО ДЕНЕГ', c.name + ' стоит $' + c.price + ' • у тебя $' + S.money, 3.4);
+    blip(160, 0.2, 0.3, 'square');
+    return;
+  }
   if(phoneEl.style.display === 'block') phoneOpen();      // закрываем телефон
   if(document.pointerLockElement) document.exitPointerLock();
-  curCall = {who:c.name, text:c.text, eff:c.eff, num:c.num, out:true};
+  curCall = {who:c.name, text:c.text, eff:c.eff, num:c.num, out:true, price:c.price || 0};
   callState = 'ring';
   document.getElementById('clWho').textContent = c.name;
   const talk = document.getElementById('clTalk');
@@ -6010,6 +6169,17 @@ function answerCall(){
   blip(520, 0.09, 0.3, 'sine');
 }
 
+/* оплата секретной услуги: списываем, если хватает */
+function paySecret(c){
+  if(S.money < c.price){
+    showMsg('НЕДОСТАТОЧНО ДЕНЕГ', c.name + ' стоит $' + c.price + ' • у тебя $' + S.money, 3.4);
+    blip(160, 0.2, 0.3, 'square');
+    return false;
+  }
+  S.money -= c.price;
+  blip(320, 0.1, 0.2, 'sine');
+  return true;
+}
 /* награда/эффект за разговор */
 function applyCallEff(c){
   const nm = c.name || c.who || ('№ ' + c.num);
@@ -6057,6 +6227,23 @@ function applyCallEff(c){
       blip(160, 0.16, 0.4, 'square');
       callCd[c.num] = now + 180; break;
     }
+    /* ---- СЕКРЕТНАЯ ЛИНИЯ: техника и снаряжение за деньги ---- */
+    case 'jetpack':
+      if(S.jetpack){ showMsg('ДЖЕТПАК УЖЕ У ТЕБЯ', 'ПРОБЕЛ — вверх • CTRL — вниз', 3); return; }
+      if(!paySecret(c)) return;
+      giveJetpack(); callCd[c.num] = now + 20; break;
+    case 'jetbike':
+      if(!paySecret(c)) return;
+      spawnJetBike(); callCd[c.num] = now + 45; break;
+    case 'buggy':
+      if(!paySecret(c)) return;
+      spawnSecretCar(true); callCd[c.num] = now + 45; break;
+    case 'supercar':
+      if(!paySecret(c)) return;
+      spawnSecretCar(false); callCd[c.num] = now + 45; break;
+    case 'heli':
+      if(!paySecret(c)) return;
+      spawnSecretHeli(); callCd[c.num] = now + 45; break;
     case 'support':
       showMsg('🆘 ПОДДЕРЖКА ИГРОКОВ',
               '+7 995 446-95-15 • gta.alex.support@gmail.com', 5);
@@ -6415,6 +6602,7 @@ window.__g3 = {S, M, player, camState, cars, peds, pickups, bullets, hero, scene
   SPECIALS, spawnGuard, spawnFleePed, makeBike, bikeRider,
   heliNear, enterHeli, exitHeli, flyHeli, camZoom,
   callNumber, CONTACTS, answerCall, callStateGet: () => callState,
+  SECRETS, giveJetpack, spawnJetBike, spawnSecretHeli, secretSpot, jetClearance,
   post: () => post,
   NET, OPT, netStart, netStop, netCount, receiveMsg, incomingCall, inbox,
   LAW, lawHunt, addCrime,
