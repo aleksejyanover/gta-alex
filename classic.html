@@ -228,19 +228,25 @@ function placeNear(){
 }
 function enterPlace(p){
   if(!p || S.inCar || S.dead) return;
-  if(p.price && !p.owned){
-    if(S.money >= p.price){
-      S.money -= p.price; p.owned = true;
-      showMsg('КУПЛЕНО: ' + p.name, 'Теперь это твоё • вход свободный', 3.4);
-    } else {
-      showMsg('НЕ ХВАТАЕТ ДЕНЕГ', p.name + ' стоит $' + p.price + ' • у тебя $' + S.money, 3.2);
-      return;
-    }
-  }
+  /* вход всегда свободный — покупка отдельным действием (R перед дверью) */
   S.inside = {p, ex:player.x, ey:player.y};
   p.b.entered = true;
   player.x = p.b.cx; player.y = p.b.cy;
   showMsg(p.name, 'R — действие • G — выйти', 3.2);
+}
+/* покупка дома/компании — отдельно от входа */
+function placeBuy(){
+  const pl = placeNear(); if(!pl) return false;
+  if(!pl.price){ showMsg(pl.name, 'Вход свободный — жми G', 2.4); return true; }
+  if(pl.owned){ showMsg('ЭТО ТВОЁ: ' + pl.name, 'Вход свободный — жми G', 2.6); return true; }
+  if(S.money < pl.price){
+    showMsg('НЕ ХВАТАЕТ ДЕНЕГ', pl.name + ' стоит $' + pl.price + ' • у тебя $' + S.money, 3.4);
+    return true;
+  }
+  S.money -= pl.price; pl.owned = true;
+  showMsg('КУПЛЕНО: ' + pl.name,
+          (pl.kind === 'company' ? 'Теперь приносит доход' : 'Это твой дом') + ' • вход свободный', 3.6);
+  return true;
 }
 function exitPlace(){
   const ins = S.inside; if(!ins) return;
@@ -2459,9 +2465,8 @@ function drawHUD(){
     } else if(!S.inCar && !S.dead){
       const np = placeNear();
       if(np){
-        hint = (np.price && !np.owned)
-          ? 'G — КУПИТЬ: ' + np.name + '  ($' + np.price + ')'
-          : 'G — войти: ' + np.name;
+        hint = 'G — войти: ' + np.name +
+               (np.price && !np.owned ? '   •   R — купить ($' + np.price + ')' : '');
         col = np.kind === 'home' ? '#8ef0a0' : (np.kind === 'company' ? '#ffd23f' : '#8fd0ff');
       }
     }
@@ -2820,7 +2825,7 @@ window.addEventListener('keydown', e => {
     else { const pl = placeNear(); if(pl) enterPlace(pl); }
     return;
   }
-  if(e.code === 'KeyR'){ placeAction(); return; }
+  if(e.code === 'KeyR'){ if(S.inside) placeAction(); else placeBuy(); return; }
   if(e.code === 'KeyF') tryEnterCar();
   if(e.code === 'Escape'){ S.paused = !S.paused; }
   if(e.code === 'KeyM'){ S.muted = !S.muted; if(master) master.gain.value = S.muted ? 0 : 0.5; }
@@ -2914,7 +2919,7 @@ window.__gta = {S, player, cam, cars, peds, pickups, M, mouse, keys, shoot, bull
   startMission, damagePlayer, WEAPONS, switchWeapon, cycleWeapon, spawnWeaponCrates, projectiles,
   updateProjectiles, boom, helis, spawnHeli, damageHeli, updateHelis, spawnTank, driveCop, driveTank,
   pathFree, steerAround, drawHUD, drawMinimap, spawnOfficer, retireOfficer, starsWanted,
-  PLACES, placeNear, enterPlace, exitPlace, placeAction, placeUpdate,
+  PLACES, placeNear, enterPlace, exitPlace, placeAction, placeUpdate, placeBuy,
   drones, bombs, spawnDrone, damageDrone, updateDrones, updateBombs};
 requestAnimationFrame(loop);
 boot();
