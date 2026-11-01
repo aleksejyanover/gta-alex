@@ -56,9 +56,9 @@
   #phone #phCallLog { margin-top:7px; max-height:58px; overflow:auto; font-size:10px; color:#8b8d98; }
   #phone .phClose { margin-top:9px; width:100%; padding:8px; background:#2a2c36; color:#c9cad2;
     border:2px solid #3a3c48; cursor:pointer; font-family:inherit; letter-spacing:1px; border-radius:8px; }
-  #call2 { display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:40;
-    width:min(350px,92vw); background:linear-gradient(180deg,#15161c,#0b0c10); border:3px solid #000;
-    border-radius:18px; box-shadow:0 0 0 2px #3a3b44, 0 24px 60px rgba(0,0,0,.85); padding:18px;
+  #call2 { display:none; position:fixed; right:16px; bottom:16px; z-index:40;
+    width:min(300px,92vw); background:linear-gradient(180deg,#15161c,#0b0c10); border:2px solid #000;
+    border-radius:16px; box-shadow:0 0 0 2px #3a3b44, 0 16px 40px rgba(0,0,0,.8); padding:14px;
     text-align:center; font-family:monospace; color:#e8e9ef; }
   #call2 .clWho { font-size:20px; font-weight:bold; letter-spacing:2px; color:#f5c542; }
   #call2 .clSub { font-size:11px; color:#8b8d98; margin-top:5px; letter-spacing:1px; }
@@ -96,11 +96,12 @@
     <div><b>МЫШЬ</b> — прицел</div>
     <div><b>ЛКМ</b> — стрельба</div>
     <div><b>F</b> — сесть / выйти из машины</div>
-    <div><b>SPACE</b> — ручник</div>
+    <div><b>SPACE</b> или <b>M</b> — ПРЫЖОК (в машине SPACE — ручник)</div>
+    <div><b>O</b> / <b>I</b> — камера дальше / ближе</div>
     <div><b>TAB</b> — карта города</div>
     <div><b>P</b> — телефон: звонки и помощь</div>
     <div><b>ESC</b> — пауза</div>
-    <div><b>M</b> — звук вкл/выкл</div>
+    <div><b>N</b> — звук вкл/выкл</div>
   </div>
   <div class="note">НУЖНА КЛАВИАТУРА И МЫШЬ</div>
 </div>
@@ -108,7 +109,7 @@
 <!-- ===== ТЕЛЕФОН (клавиша P) ===== -->
 <div id="phone">
   <div class="phTop">GTA PHONE • <span id="phClock">00:00</span></div>
-  <div class="phCap">КОНТАКТЫ — НАЖМИ, ЧТОБЫ ПОЗВОНИТЬ</div>
+  <div class="phCap">КОНТАКТЫ — НАЖМИ ИЛИ ↑↓ + ENTER • 1-9 БЫСТРО • ESC ЗАКРЫТЬ</div>
   <div id="phContacts"></div>
   <div class="phDial">
     <input id="phDialIn" maxlength="6" placeholder="номер..." inputmode="numeric">
@@ -127,7 +128,7 @@
   </div>
 </div>
 
-<script src="accounts.js?v=8"></script>
+<script src="accounts.js?v=10"></script>
 <script>
 (function(){
 "use strict";
@@ -247,6 +248,7 @@ function makePlace2D(b, kind, name, price){
 }
 function genPlaces2D(){
   const want = [
+    {kind:'police',  name:'ПОЛИЦЕЙСКИЙ УЧАСТОК'},   // сюда привозят по розыску
     {kind:'home',    name:'ТВОЙ ДОМ',          price:4000},
     {kind:'company', name:'ОРУЖЕЙНЫЙ МАГАЗИН', price:6000},
     {kind:'company', name:'АВТОСАЛОН «ALEX»',  price:8000},
@@ -304,8 +306,13 @@ function placeBuy(){
           (pl.kind === 'company' ? 'Теперь приносит доход' : 'Это твой дом') + ' • вход свободный', 3.6);
   return true;
 }
-function exitPlace(){
+function exitPlace(force){
   const ins = S.inside; if(!ins) return;
+  if(!force && S.jailT > 0){                        // отсидка ещё не закончилась
+    showMsg('ТЫ В ТЮРЬМЕ', 'Ещё ' + Math.ceil(S.jailT) + ' сек • R — заплатить залог $' +
+            (Math.ceil(S.jailT) * 25), 2.8);
+    return;
+  }
   ins.p.b.entered = false;
   S.inside = null;
   player.x = ins.ex; player.y = ins.ey;
@@ -314,6 +321,18 @@ function exitPlace(){
 function placeAction(){
   const ins = S.inside; if(!ins) return;
   const p = ins.p;
+  if(S.jailT > 0){                                // в тюрьме R — заплатить залог и выйти
+    const bail = Math.ceil(S.jailT) * 25;
+    if(S.money < bail){ showMsg('НЕ ХВАТАЕТ НА ЗАЛОГ', 'Нужно $' + bail + ' • можешь отсидеть', 2.8); return; }
+    S.money -= bail; S.jailT = 0;
+    showMsg('ЗАЛОГ ЗАПЛАЧЕН', '-$' + bail + ' • G — выйти на свободу', 3.2);
+    blip(520, 0.1, 0.28, 'sine');
+    return;
+  }
+  if(p.kind === 'police'){
+    showMsg('ПОЛИЦЕЙСКИЙ УЧАСТОК', 'Сюда привозят по розыску • G — выйти', 3);
+    return;
+  }
   if(p.kind === 'home'){
     S.health = S.maxHealth;
     if(window.GA && GA.isLoggedIn && GA.isLoggedIn())
@@ -384,7 +403,10 @@ const S = {
   money:350, health:100, maxHealth:100, wanted:0, crimeTime:0,
   inCar:null, kills:0, dead:false, deadT:0,
   shake:0, msg:null, muted:false, mutedByUser:false,
-  tod:0.6, nightF:0
+  tod:0.6, nightF:0,
+  jumpT:0, jumpDur:0.5,                        // прыжок пешком
+  president:false, mayor:false, presT:0, mayT:0,// власти: страна и город
+  jailT:0, arrestT:0, arrestSaid:0             // тюрьма: срок и счётчик поимки
 };
 /* ==================== АРСЕНАЛ: нож, пистолеты, винтовки, базуки ==================== */
 const WEAPONS = [
@@ -1264,6 +1286,8 @@ function addCrime(v, x, y){
 }
 function starsWanted(){ return clamp(Math.ceil(S.wanted - 0.05), 0, 5); }
 function updateWanted(dt){
+  /* президента мира полиция не трогает: розыск не растёт и тут же гаснет */
+  if(S.president){ S.wanted = 0; S.crimeTime = 0; return; }
   S.crimeTime += dt;
   if(S.crimeTime > 11 && S.wanted > 0){
     S.wanted = Math.max(0, S.wanted - dt * 0.11 / (ED.crimeMult || 1));
@@ -1589,6 +1613,7 @@ function updatePlayer(dt){
     }
   } else {
     if(engGain && AC) engGain.gain.setTargetAtTime(0, AC.currentTime, 0.15);
+    if(S.jumpT > 0) S.jumpT -= dt;                // прыжок (SPACE или M)
     let dx = 0, dy = 0;
     if(keys.KeyW || keys.ArrowUp) dy -= 1;
     if(keys.KeyS || keys.ArrowDown) dy += 1;
@@ -1617,7 +1642,8 @@ function updateWeaponSkill(dt){
   if(S.wpnKick > 0) S.wpnKick = Math.max(0, S.wpnKick - dt * 5);
 }
 function respawn(){
-  if(S.inside) exitPlace();                        // очнулся — вышел из дома
+  if(S.inside) exitPlace(true);                     // очнулся — вышел из дома
+  const wasWanted = S.wanted;                       // с розыском — не в больницу, а в участок
   S.dead = false; S.health = S.maxHealth; S.wanted = 0;
   S.money = Math.max(0, S.money - 200);
   if(S.inCar) exitCar(true);
@@ -1628,8 +1654,64 @@ function respawn(){
   drones.length = 0; bombs.length = 0;
   for(let i = peds.length - 1; i >= 0; i--) if(peds[i].cop) peds.splice(i, 1);
   S.lastStars = 0;
+  if(wasWanted >= 1){                               // тебя не спасли — тебя посадили
+    S.wanted = wasWanted;                           // вернём звёзды ради срока и штрафа
+    bustPlayer();
+    M.phase = 'wait'; M.phaseT = 1.5; M.nextIdx = M.idx;
+    return;
+  }
   showMsg('ВЫ ПОГИБЛИ', 'Больница • -$200', 3);
   M.phase = 'wait'; M.phaseT = 1.5; M.nextIdx = M.idx;
+}
+/* ===== АРЕСТ: тюрьма вместо больницы ===== */
+function bustPlayer(){
+  const stars = clamp(Math.ceil(S.wanted - 0.05), 1, 5);
+  const fine = Math.min(S.money, 150 + stars * 150);
+  S.money = Math.max(0, S.money - fine);
+  S.jailT = 12 + stars * 8;                         // срок в секундах
+  S.wanted = 0; S.crimeTime = 0; S.arrestT = 0; S.arrestSaid = 0;
+  if(S.inCar) exitCar(true);
+  if(S.inside) exitPlace(true);
+  const st = PLACES.find(q => q.kind === 'police');
+  if(st){ player.x = st.b.cx; player.y = st.b.cy; enterPlace(st); }   // очнулся в участке
+  else { const rp = randomRoadPoint(0); player.x = rp.x; player.y = rp.y; }
+  ach('jail'); statAdd('jailVisits', 1);
+  showMsg('🔒 ТЫ ПОЙМАН',
+    'Тюрьма: ' + Math.round(S.jailT) + ' сек • штраф $' + fine + ' • R — залог $' + (Math.ceil(S.jailT) * 25), 5.4);
+  blip(200, 0.3, 0.4, 'square');
+}
+/* отсидка идёт своим ходом; закончилось — можно выходить */
+function updateJail(dt){
+  if(S.jailT <= 0) return;
+  S.jailT -= dt;
+  if(S.jailT <= 0){
+    S.jailT = 0;
+    showMsg('ОТСИДКА ОКОНЧЕНА', 'Ты на свободе • G — выйти на улицу', 3.4);
+    blip(660, 0.12, 0.3, 'sine');
+  }
+}
+/* ===== ЖИВОЙ АРЕСТ: коп поймал тебя на улице ===== */
+function copNearR(){
+  if(S.wanted < 1 || S.president || S.jailT > 0) return 0;
+  for(const p of peds){
+    if(!p.cop || p.dead) continue;
+    if(dist(p.x, p.y, player.x, player.y) < 22) return 1;
+  }
+  for(const c of cars){
+    if(c.type !== 'police' || c.dead) continue;
+    if(dist(c.x, c.y, player.x, player.y) < 46 && Math.abs(c.speed) < 10) return 1;
+  }
+  return 0;
+}
+function updateArrest(dt){
+  if(S.dead || S.inCar || S.inside || !copNearR()){ S.arrestT = 0; S.arrestSaid = 0; return; }
+  S.arrestT += dt;
+  if(!S.arrestSaid){
+    S.arrestSaid = 1;
+    showMsg('⚠ ТЕБЯ АРЕСТОВЫВАЮТ', 'Убеги от копа или жми G — сдаться', 2.6);
+    blip(220, 0.14, 0.3, 'square');
+  }
+  if(S.arrestT > 1.5) bustPlayer();                 // не убежал — посадили
 }
 function updateCars(dt){
   for(let i = cars.length - 1; i >= 0; i--){
@@ -1727,6 +1809,9 @@ function updateCamera(dt){
 }
 function update(dt){
   S.time += dt;
+  powerIncome(dt);                               // казна страны и доход города
+  updateJail(dt);                                // отсидка в участке
+  updateArrest(dt);                              // коп может поймать живьём
   if(ED.permanentNight){
     S.tod = 0.86; S.nightF = 1;   // в выживании всегда ночь
   } else if(ED.night){
@@ -2150,10 +2235,12 @@ function drawPed(p){
 }
 function drawPlayer(){
   if(S.inCar || S.dead) return;
+  const lift = S.jumpT > 0 ? Math.sin((1 - S.jumpT / S.jumpDur) * Math.PI) * 11 : 0;   // высота прыжка
   ctx.save();
   ctx.translate(player.x, player.y);
   ctx.fillStyle = 'rgba(0,0,0,0.35)';
-  ctx.beginPath(); ctx.ellipse(4, 5, 11, 8, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(4, 5, 11 - lift * 0.22, 8 - lift * 0.16, 0, 0, Math.PI*2); ctx.fill();
+  ctx.translate(0, -lift);
   const sw = Math.sin(player.anim * 7) * 5;
   ctx.strokeStyle = '#1e2430'; ctx.lineWidth = 5; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(-3, 4); ctx.lineTo(-3 + sw, 12); ctx.stroke();
@@ -2401,6 +2488,23 @@ function drawHUD(){
   ctx.strokeText(money, W - 20, 52);
   ctx.fillStyle = '#8ef0a0';
   ctx.fillText(money, W - 20, 52);
+  /* титул власти */
+  if(S.president || S.mayor){
+    const tTxt = S.president ? (S.mayor ? '🌍 ПРЕЗИДЕНТ МИРА • 🏙 МЭР ГОРОДА' : '🌍 ПРЕЗИДЕНТ МИРА')
+                             : '🏙 МЭР ГОРОДА';
+    const tSub = S.president ? (S.mayor ? 'доход города и страны капает каждые 20 сек'
+                                        : 'власть над страной • полиция не трогает')
+                             : 'четверть города твоя • доход каждые 20 сек';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 15px "Arial Black", sans-serif';
+    ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+    ctx.strokeText(tTxt, W / 2, 30);
+    ctx.fillStyle = S.president ? '#ffd25e' : '#8ecbff';
+    ctx.fillText(tTxt, W / 2, 30);
+    ctx.font = '11px monospace';
+    ctx.strokeText(tSub, W / 2, 46);
+    ctx.fillText(tSub, W / 2, 46);
+  }
   if(PERKS.owner){
     ctx.font = 'bold 13px "Arial Black", sans-serif';
     ctx.textAlign = 'center';
@@ -2542,25 +2646,40 @@ function drawHUD(){
   drawMinimap();
 
   // сообщения
+  if(S.jailT > 0){                                // таймер отсидки — правый верхний угол
+    ctx.textAlign = 'right';
+    ctx.font = 'bold 12px monospace';
+    ctx.fillStyle = 'rgba(8,10,14,0.6)';
+    rr(ctx, W - 158, 114, 142, 19, 5); ctx.fill();
+    ctx.fillStyle = '#ffab7a';
+    ctx.fillText('🔒 ТЮРЬМА ' + Math.ceil(S.jailT) + ' c • R залог', W - 26, 127);
+  }
   if(S.msg && (S.msg.text || S.msg.sub)){
     const a = clamp(Math.min(S.msg.t, S.msg.max - S.msg.t + 0.3), 0, 1);
-    ctx.globalAlpha = a;
-    ctx.textAlign = 'center';
+    ctx.globalAlpha = a * 0.95;
+    ctx.textAlign = 'right';
+    const mx = W - 16;
+    let my = 136;                                 // правый верх, под блоком розыска
     if(S.msg.text){
-      ctx.font = 'bold 44px "Arial Black", sans-serif';
-      ctx.lineWidth = 8; ctx.strokeStyle = 'rgba(0,0,0,0.9)';
-      ctx.strokeText(S.msg.text, W/2, H * 0.24);
-      ctx.fillStyle = S.msg.text.indexOf('ПРОВАЛ') >= 0 ? '#ff5b4a' : '#f5c542';
-      ctx.fillText(S.msg.text, W/2, H * 0.24);
+      ctx.font = 'bold 16px "Arial Black", sans-serif';
+      const tw = ctx.measureText(S.msg.text).width + 22;
+      ctx.fillStyle = 'rgba(8,10,14,0.6)';
+      rr(ctx, mx - tw, my - 17, tw, 23, 6); ctx.fill();
+      ctx.fillStyle = (S.msg.text.indexOf('ПРОВАЛ') >= 0 || S.msg.text.indexOf('⚠') >= 0 ||
+                       S.msg.text.indexOf('ПОЙМАН') >= 0) ? '#ff6b5a' : '#ffd75e';
+      ctx.fillText(S.msg.text, mx - 10, my);
+      my += 26;
     }
     if(S.msg.sub){
-      ctx.font = 'bold 20px "Arial Black", sans-serif';
-      ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(0,0,0,0.9)';
-      ctx.strokeText(S.msg.sub, W/2, H * 0.24 + 38);
-      ctx.fillStyle = '#fff';
-      ctx.fillText(S.msg.sub, W/2, H * 0.24 + 38);
+      ctx.font = '12px monospace';
+      const sw = ctx.measureText(S.msg.sub).width + 22;
+      ctx.fillStyle = 'rgba(8,10,14,0.5)';
+      rr(mx - sw, my - 14, sw, 20, 5); ctx.fill();
+      ctx.fillStyle = '#dfe6f2';
+      ctx.fillText(S.msg.sub, mx - 10, my);
     }
     ctx.globalAlpha = 1;
+    ctx.textAlign = 'left';
   }
 
   // смерть
@@ -2884,7 +3003,11 @@ const CONTACTS = [
   {name:'МЕЙДЖОР', num:'500', cls:'warn', eff:'heat',
    text:'Твоё имя засветилось в базе. Я всё сказал — теперь беги!'},
   {name:'НЕИЗВЕСТНЫЙ №', num:'0911', cls:'warn', eff:'mystery',
-   text:'...мы знаем, где ты живёшь. Это конец.'}
+   text:'...мы знаем, где ты живёшь. Это конец.'},
+  {name:'ПРЕЗИДЕНТ МИРА', num:'1000', cls:'gift', eff:'president', price:10000,
+   text:'Присяга принята. Страна твоя: половина дохода и неприкосновенность.'},
+  {name:'МЭР ГОРОДА', num:'1001', cls:'gift', eff:'mayor', price:5000,
+   text:'Принял пост. Четверть города отныне твоя — доход капает сам.'}
 ];
 const callCd = {};
 let curCall = null, callState = 'none', outTimer = null;
@@ -2898,6 +3021,43 @@ function phoneOpen(){
     document.getElementById('phClock').textContent =
       (d.getHours() < 10 ? '0' : '') + d.getHours() + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes();
     renderContacts();
+    phoneSel = 0; phoneSelDraw();                      // подсветка первой кнопки
+  } else phoneSel = -1;
+}
+/* ===== КЛАВИАТУРА В ТЕЛЕФОНЕ: ↑↓/W-S/Q-E — выбор, ENTER — нажать, 1-9 — быстро ===== */
+let phoneSel = -1;
+function phoneBtns(){
+  return Array.prototype.filter.call(
+    document.querySelectorAll('#phone button'), b => b.offsetParent !== null);
+}
+function phoneSelDraw(list){
+  list = list || phoneBtns();
+  list.forEach((b, i) => {
+    b.style.outline = (i === phoneSel) ? '2px solid #ffd75e' : '';
+    b.style.outlineOffset = '2px';
+  });
+  if(phoneSel >= 0 && list[phoneSel]) list[phoneSel].scrollIntoView({block: 'nearest'});
+}
+function phoneKeys(code){
+  const list = phoneBtns();
+  if(!list.length) return;
+  if(code === 'ArrowDown' || code === 'KeyS' || code === 'KeyE'){
+    phoneSel = (phoneSel + 1) % list.length; phoneSelDraw(list);
+    blip(430, 0.025, 0.09, 'sine'); return;
+  }
+  if(code === 'ArrowUp' || code === 'KeyW' || code === 'KeyQ'){
+    phoneSel = (phoneSel - 1 + list.length) % list.length; phoneSelDraw(list);
+    blip(430, 0.025, 0.09, 'sine'); return;
+  }
+  if(code === 'Enter' || code === 'Space'){
+    const b = list[phoneSel >= 0 ? phoneSel : 0];
+    if(b) b.focus(), b.click();
+    return;
+  }
+  const m = /^Digit(\d)$/.exec(code);
+  if(m){
+    const idx = (m[1] === '0' ? 9 : (+m[1] - 1));       // 1-9 и 0 — мгновенный «клик»
+    if(list[idx]){ phoneSel = idx; phoneSelDraw(list); list[idx].click(); }
   }
 }
 function renderContacts(){
@@ -2936,8 +3096,13 @@ function callNumber(raw){
     blip(180, 0.12, 0.25, 'square');
     return;
   }
+  if(c.price && S.money < c.price){                // платная линия власти
+    showMsg('НЕДОСТАТОЧНО ДЕНЕГ', c.name + ' стоит $' + c.price + ' • у тебя $' + S.money, 3.4);
+    blip(160, 0.2, 0.3, 'square');
+    return;
+  }
   if(phoneEl.style.display === 'block') phoneOpen();        // закрываем телефон
-  curCall = {who:c.name, text:c.text, eff:c.eff, num:c.num, out:true};
+  curCall = {who:c.name, text:c.text, eff:c.eff, num:c.num, out:true, price:c.price || 0};
   callState = 'ring';
   document.getElementById('cl2Who').textContent = c.name;
   const t = document.getElementById('cl2Talk');
@@ -3021,9 +3186,61 @@ function applyCallEff(c){
       showMsg('⚠ НЕИЗВЕСТНЫЙ НОМЕР', 'кто-то знает, где ты живёшь', 3.6);
       blip(160, 0.16, 0.4, 'square');
       callCd[c.num] = now + 180; break;
+    case 'president':
+      if(S.president){ showMsg('ТЫ УЖЕ ПРЕЗИДЕНТ МИРА', 'казна капает каждые 20 сек', 3); return; }
+      if(!payPower(c)) return;
+      makePresident(); callCd[c.num] = now + 30; break;
+    case 'mayor':
+      if(S.mayor){ showMsg('ТЫ УЖЕ МЭР ГОРОДА', 'доход города капает каждые 20 сек', 3); return; }
+      if(!payPower(c)) return;
+      makeMayor(); callCd[c.num] = now + 30; break;
   }
   statAdd('calls', 1);
   ach('caller');
+}
+/* оплата должности: списываем, если хватает */
+function payPower(c){
+  if(S.money < c.price){
+    showMsg('НЕДОСТАТОЧНО ДЕНЕГ', c.name + ' стоит $' + c.price + ' • у тебя $' + S.money, 3.4);
+    blip(160, 0.2, 0.3, 'square');
+    return false;
+  }
+  S.money -= c.price;
+  blip(320, 0.1, 0.2, 'sine');
+  return true;
+}
+/* ===== ВЛАСТЬ: президент мира (полстраны) и мэр города (четверть) ===== */
+function powerIncome(dt){
+  if(S.president){
+    S.presT += dt;
+    if(S.presT > 20){
+      S.presT = 0; S.money += 1000;
+      showMsg('🏛 КАЗНА СТРАНЫ', 'твоя доля как президента мира: +$1000', 3);
+      blip(760, 0.1, 0.24, 'sine');
+    }
+  }
+  if(S.mayor){
+    S.mayT += dt;
+    if(S.mayT > 20){
+      S.mayT = 0; S.money += 400;
+      showMsg('🏙 ДОХОД ГОРОДА', 'четверть владения города: +$400', 3);
+      blip(660, 0.1, 0.22, 'sine');
+    }
+  }
+}
+function makePresident(){
+  if(S.president) return;
+  S.president = true; S.wanted = 0; S.crimeTime = 0;
+  ach('president');
+  showMsg('🌍 ТЫ — ПРЕЗИДЕНТ МИРА', 'полная власть над страной • полиция не трогает • +$1000 каждые 20 сек', 6);
+  blip(880, 0.16, 0.3, 'sine');
+}
+function makeMayor(){
+  if(S.mayor) return;
+  S.mayor = true;
+  ach('mayor');
+  showMsg('🏙 ТЫ — МЭР ГОРОДА', 'четверть города в твоих руках • +$400 каждые 20 сек', 5);
+  blip(720, 0.14, 0.28, 'sine');
 }
 document.getElementById('phClose').addEventListener('click', phoneOpen);
 document.getElementById('phDialGo').addEventListener('click', () => {
@@ -3049,30 +3266,37 @@ window.addEventListener('keydown', e => {
   if(e.target && e.target.tagName === 'INPUT') return;        // печатаем номер в телефоне
   // ===== ТЕЛЕФОН =====
   if(e.code === 'KeyP'){ phoneOpen(); return; }
-  if(phoneEl.style.display === 'block'){ if(e.code === 'Escape') phoneOpen(); return; }
+  if(phoneEl.style.display === 'block'){ if(e.code === 'Escape') phoneOpen(); else phoneKeys(e.code); return; }
   if(/^Digit[1-8]$/.test(e.code)){ switchWeapon(parseInt(e.code.slice(5), 10) - 1); return; }
   if(e.code === 'KeyQ'){ cycleWeapon(-1); return; }
   if(e.code === 'KeyE'){ cycleWeapon(1); return; }
   // ===== ДОМА И КОМПАНИИ =====
   if(e.code === 'KeyG'){
     if(S.inside) exitPlace();
+    else if(copNearR()){ showMsg('ТЫ СДАЛСЯ ПОЛИЦИИ', 'Смирись — отсидишь срок', 2.4); bustPlayer(); }
     else { const pl = placeNear(); if(pl) enterPlace(pl); }
     return;
   }
   if(e.code === 'KeyR'){ if(S.inside) placeAction(); else placeBuy(); return; }
   if(e.code === 'KeyF') tryEnterCar();
+  // ===== ПРЫЖОК (пешком): SPACE или M =====
+  if((e.code === 'Space' || e.code === 'KeyM') && !S.inCar && !S.dead && S.jumpT <= 0){
+    S.jumpT = S.jumpDur; blip(320, 0.05, 0.16, 'sine');
+  }
+  // ===== ЗУМ КАМЕРЫ: O — дальше, I — ближе (также колесо мыши) =====
+  if(e.code === 'KeyO'){ camZoom2D(-1); return; }
+  if(e.code === 'KeyI'){ camZoom2D(+1); return; }
   if(e.code === 'Escape'){ S.paused = !S.paused; }
-  if(e.code === 'KeyM'){ S.muted = !S.muted; if(master) master.gain.value = S.muted ? 0 : 0.5; }
+  if(e.code === 'KeyN'){ S.muted = !S.muted; if(master) master.gain.value = S.muted ? 0 : 0.5; }
 });
 window.addEventListener('keyup', e => { keys[e.code] = false; });
 window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
 window.addEventListener('mousedown', e => { if(e.button === 0){ mouse.down = true; mouse.edge = true; } });
 window.addEventListener('mouseup', e => { if(e.button === 0) mouse.down = false; });
 let wheelMsgT = 0;
-window.addEventListener('wheel', e => {
-  if(S.state !== 'play' || S.paused) return;
-  /* КОЛЕСО МЫШИ — приближение/отдаление камеры (оружие: 1-8, Q/E) */
-  const nz = clamp(cam.uz + (e.deltaY > 0 ? -0.14 : 0.14), -0.6, 1.5);
+/* O (дальше) / I (ближе) и КОЛЕСО МЫШИ — зум камеры */
+function camZoom2D(dir){
+  const nz = clamp(cam.uz + dir * 0.14, -0.6, 1.5);
   if(nz === cam.uz) return;
   cam.uz = nz;
   const now = performance.now();
@@ -3081,6 +3305,11 @@ window.addEventListener('wheel', e => {
     showMsg('🔍 КАМЕРА', cam.uz <= -0.59 ? 'ближе к герою' : (cam.uz >= 1.49 ? 'дальше от героя'
            : (cam.uz > 0 ? 'отдалилась' : 'приблизилась')), 1.4);
   }
+}
+window.addEventListener('wheel', e => {
+  if(S.state !== 'play' || S.paused) return;
+  /* КОЛЕСО МЫШИ — приближение/отдаление камеры (оружие: 1-8, Q/E) */
+  camZoom2D(e.deltaY > 0 ? -1 : 1);
 }, {passive:true});
 window.addEventListener('contextmenu', e => e.preventDefault());
 
@@ -3165,6 +3394,8 @@ window.__gta = {S, player, cam, cars, peds, pickups, M, mouse, keys, shoot, bull
   pathFree, steerAround, drawHUD, drawMinimap, spawnOfficer, retireOfficer, starsWanted,
   PLACES, placeNear, enterPlace, exitPlace, placeAction, placeUpdate, placeBuy,
   phoneOpen, callNumber, CONTACTS, answerCall, callStateGet: () => callState,
+  powerIncome, makePresident, makeMayor, camZoom2D,
+  bustPlayer, updateJail, updateArrest, copNearR,
   drones, bombs, spawnDrone, damageDrone, updateDrones, updateBombs};
 requestAnimationFrame(loop);
 boot();
