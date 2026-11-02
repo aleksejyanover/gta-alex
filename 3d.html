@@ -268,12 +268,12 @@ const E = new URLSearchParams(location.search).get('e') || '3';
 const ED = ({
   '3': {title:'GTA АЛЕКС 3', short:'GTA АЛЕКС 3', sub:'ОТ ПЕРВОГО ЛИЦА • АРКАДА • КЛАССИКА',
         tod:0.38, dayLen:240, skyDay:0x8ec9ee, skyNight:0x0a1024, skySet:0xff8a4a,
-        palette:null, cars:34, peds:60, hud:'#5c9cff', fp:true, real:1, killers:1, phone:true},
+        palette:null, cars:50, peds:60, hud:'#5c9cff', fp:true, real:1, killers:1, phone:true},
   // МРАЧНЫЙ КРИМИНАЛ: дождь, строгая полиция, тайные сделки, киллеры
   '4': {title:'GTA АЛЕКС 4', short:'GTA АЛЕКС 4', sub:'ОТ ПЕРВОГО ЛИЦА • ДОЖДЬ • СДЕЛКИ • КИЛЛЕРЫ',
         tod:0.66, dayLen:320, skyDay:0x6b7480, skyNight:0x090c13, skySet:0x3f4650,
         palette:[0x5a6068,0x4e555e,0x666c74,0x474d55,0x5e646c,0x535960], rain:true,
-        tint:'#8a929c', tintA:0.28, cars:34, peds:56, fogNear:60, fogFar:330,
+        tint:'#8a929c', tintA:0.28, cars:48, peds:56, fogNear:60, fogFar:330,
         crime:1.5, strict:true, deal:true, nightSteal:true, copRate:1.6, decay:0.3,
         hud:'#8fb8d8', fp:true, real:2, killers:2, phone:true,
         missions:[
@@ -289,7 +289,7 @@ const ED = ({
   '5': {title:'GTA АЛЕКС 5', short:'GTA АЛЕКС 5', sub:'ОТ ПЕРВОГО ЛИЦА • ГОНКИ • МАКС. РЕАЛИЗМ',
         tod:0.35, dayLen:300, skyDay:0x7ec8f5, skyNight:0x0a1024, skySet:0xffa05c,
         palette:[0xe8a05a,0x6fc0e0,0xf0d080,0x8fd0a0,0xff9a8a,0xc8a0e0,0xf2f0e8,0x6ad0c0],
-        cars:52, peds:82, hud:'#ff9a3d', race:true, ramps:true,
+        cars:70, peds:82, hud:'#ff9a3d', race:true, ramps:true,
         fp:true, real:3, killers:3, phone:true,
         missions:[
           {type:'car',     text:'Сядь в машину — начинаем турнир'},
@@ -304,7 +304,7 @@ const ED = ({
   '6': {title:'GTA АЛЕКС 6', short:'GTA АЛЕКС 6', sub:'BETA • ОТ ПЕРВОГО ЛИЦА • ПЛЯЖ • МАКС. РЕАЛИЗМ',
         tod:0.68, dayLen:380, skyDay:0x8ec9ee, skyNight:0x070518, skySet:0xff5ca8,
         palette:[0x7a5cd0,0x4a90d0,0xd05cb0,0x50c8d0,0x9a6ae0,0x3a3f6a,0x2f6f9a],
-        neon:true, beta:true, coast:true, sport:true, cars:46, peds:70, hud:'#ff5ca8',
+        neon:true, beta:true, coast:true, sport:true, cars:64, peds:70, hud:'#ff5ca8',
         fp:true, real:3, killers:3, phone:true, support:true,
         missions:[
           {type:'car',     text:'Сядь в спорткар — жми F'},
@@ -318,7 +318,7 @@ const ED = ({
   'sa': {title:'GTA АЛЕКС: SAN ANDREAS', short:'SAN ANDREAS', sub:'ОТ ПЕРВОГО ЛИЦА • БАНДЫ • ГАРАЖ • ПРИЧЁСКА',
         tod:0.3, dayLen:260, skyDay:0x9ecfe0, skyNight:0x0c0f1e, skySet:0xffb060,
         palette:[0xd8b878,0xc9a060,0xe0c890,0xb09060,0xd8c0a0,0xc0a878],
-        tint:'#d8b070', tintA:0.42, cars:36, peds:62, gangs:true, hud:'#4bd86a',
+        tint:'#d8b070', tintA:0.42, cars:52, peds:62, gangs:true, hud:'#4bd86a',
         fp:true, real:1, killers:2, phone:true, garage:true, crew:true, style:true,
         missions:[
           {type:'car',      text:'Сядь в машину — начинаем войну за район'},
@@ -334,12 +334,12 @@ const ED = ({
         tod:0.62, dayLen:420, skyDay:0x8ec9ee, skyNight:0x070518, skySet:0xff7ab8,
         palette:[0xff8ac0,0xffd166,0x7ad7f0,0xa0e8a0,0xfff0f5,0xffb3c7,
                  0x9a6ae0,0x50c8d0,0xf2f0e8,0x6ad0c0],
-        special:true, party:true, cars:56, peds:92, hud:'#ff9ac8',
+        special:true, party:true, cars:76, peds:92, hud:'#ff9ac8',
         // графика уровня GTA 6 и выше: вид от первого лица + HQ-рендер
         fp:true, real:3, neon:true, coast:true, sport:true,
-        // всё лучшее из остальных версий: гонки, банды, гараж, киллеры, телефон, поддержка
+        // всё лучшее из остальных версий: гонки, банды, гараж, телефон, поддержка
         race:true, ramps:true, gangs:true, garage:true, crew:true, style:true,
-        killers:3, phone:true, support:true,
+        killers:0, phone:true, support:true,        // ЛИЧНЫЙ РЕЖИМ: без киллеров и воров
         missions:[
           {type:'car',     text:'Сядь в машину — начинаем праздник'},
           {type:'race',    text:'Праздничная гонка: 5 точек', time:90, pay:1200},
@@ -352,7 +352,7 @@ const ED = ({
         ]}
 })[E] || ({
   title:'GTA АЛЕКС 3', short:'GTA АЛЕКС 3', sub:'КЛАССИЧЕСКАЯ ТРОЙКА', tod:0.38, dayLen:240,
-  skyDay:0x8ec9ee, skyNight:0x0a1024, skySet:0xff8a4a, palette:null, cars:34, peds:60, hud:'#5c9cff'
+  skyDay:0x8ec9ee, skyNight:0x0a1024, skySet:0xff8a4a, palette:null, cars:48, peds:60, hud:'#5c9cff'
 });
 document.title = ED.title;
 document.querySelectorAll('.logo .name').forEach(el => {
@@ -1538,6 +1538,7 @@ function dealerCar(p){
   const c = makeCar(best.x, best.z, vert ? Math.PI/2 : 0, 'sport',
                     pick([0xff2a2a, 0x18e0ff, 0xffe23f, 0x2fff7a, 0xff5cd0, 0xf5f5f5]));
   c.type = 'parked'; c.sport = true; c.max = 30;   // стоит на месте, но быстрый
+  c.mine = true;                                    // куплена в салоне — стекло не нужно
   cars.push(c);
   return c;
 }
@@ -2268,7 +2269,7 @@ function spawnTraffic(){
     c.speed = kind === 'sport' ? rand(15, 20) : rand(7, 12);
     cars.push(c);
   }
-  for(let i = 0; i < 24; i++){
+  for(let i = 0; i < 36; i++){
     const p = randomRoadPoint(15);
     const vert = Math.abs(((p.x % CELL) + CELL) % CELL) < 1;
     const side = Math.random() < 0.5 ? 1 : -1;
@@ -2283,7 +2284,7 @@ function spawnTraffic(){
 }
 /* --- мотоциклы: часть ездит с байкерами, часть стоит на обочине --- */
 function spawnBikes(){
-  const nRide = 3, nPark = 7;
+  const nRide = 6, nPark = 14;
   for(let i = 0; i < nRide; i++){
     const p = randomRoadPoint(28);
     const vert = Math.abs(((p.x % CELL) + CELL) % CELL) < 1;
@@ -3148,6 +3149,7 @@ function spawnFleePed(x, z, cloth, skin){
 }
 
 function spawnGangPed(kind, district){
+  if(ED.special && kind === 'rival') kind = 'ally';   // личный режим: враждебных банд нет
   const d = district || (kind === 'ally'
     ? (DISTRICTS.find(q => q.owner === 'ally') || DISTRICTS[0])
     : (pick(DISTRICTS.filter(q => q.owner !== 'ally')) || DISTRICTS[1]));
@@ -3184,6 +3186,7 @@ function spawnPed(){
 }
 /* ==================== КИЛЛЕРЫ: убивают прохожих ==================== */
 function spawnKiller(){
+  if(ED.special) return;                           // личный режим: киллеров нет
   const p = randomRoadPoint(15);
   const cloth = 0x14151a, skin = pick(PED_SKIN);
   const h = makeHuman(cloth, skin, false);
@@ -3322,7 +3325,7 @@ function garageTrySpawn(){
     return false;
   }
   const c = makeCar(GARAGE.x + 4, GARAGE.z, 0, S.garSaved.sport ? 'sport' : 'parked', S.garSaved.color);
-  c.type = 'parked'; c.max = S.garSaved.max;
+  c.type = 'parked'; c.max = S.garSaved.max; c.mine = true;   // твоя машина из гаража
   cars.push(c);
   // сразу садимся
   S.inCar = c; c.driver = true; c.type = 'player';
@@ -3510,7 +3513,7 @@ function updatePed(p, dt){
           bullets.push({x:p.x + Math.cos(a)*0.7, z:p.z + Math.sin(a)*0.7,
             vx:Math.cos(a)*95, vz:Math.sin(a)*95, life:0.6, from:'cop'});
           noise(0.07, 0.2, 2200, 'highpass');
-          if((!ED.party || ED.special) && Math.random() < 0.35) lawHunt(p, 'БАНДИТ'); // стрельба — на выезд
+          if(!ED.party && !ED.special && Math.random() < 0.35) lawHunt(p, 'БАНДИТ'); // стрельба — на выезд
         }
       } else {
         if(p.turn <= 0){ p.turn = rand(0.8, 3); p.angle += rand(-1.4, 1.4); }
@@ -3730,6 +3733,16 @@ function damagePlayer(d){
 }
 function damageCar(c, dmg, fromPlayer){
   if(c.dead) return;
+  /* ===== ЧУЖАЯ МАШИНА: сперва стекло, потом угнать =====
+     Пуля бьёт по стеклу чужого авто, пока не разобьётся — тогда F и +1★ */
+  if(fromPlayer && !c.glassBroke && !c.mine && c.cabin && !c.boat &&
+     (c.type === 'parked' || c.type === 'traffic')){
+    if(c.glassHp === undefined) c.glassHp = 42;
+    c.glassHp -= dmg;
+    for(let i = 0; i < 2; i++)
+      spawnPart(c.x, 1.7, c.z, rand(-3,3), rand(1,4), rand(-3,3), 0.3, 0xdff0ff, 6);
+    if(c.glassHp <= 0) breakGlass(c);
+  }
   c.hp -= dmg;
   c.flash = 0.15;
   for(let i = 0; i < 3; i++)
@@ -3741,6 +3754,22 @@ function damageCar(c, dmg, fromPlayer){
     if(c.type === 'police') addCrime(1.5);
     else if(fromPlayer) addCrime(0.6);
   }
+}
+/* стекло чужой машины разбито — можно забирать, но это видели свидетели */
+function breakGlass(c){
+  c.glassBroke = true;
+  if(c.cabin){
+    const m = c.cabin.material;
+    m.color.setHex(0x04060a);                       // дырявое стекло: тёмное и матовое
+    if(m.transparent !== undefined){ m.transparent = true; m.opacity = 0.32; }
+    m.needsUpdate = true;
+  }
+  for(let i = 0; i < 8; i++)
+    spawnPart(c.x, 1.7, c.z, rand(-5,5), rand(2,6), rand(-5,5), 0.45, 0xdff0ff, 5);
+  blip(1500, 0.1, 0.16, 'square');
+  addCrime(1);                                      // разбитое стекло — +1★ розыска
+  statAdd('glassBroken', 1);
+  showMsg('СТЕКЛО РАЗБИТО', 'Чужая машина открыта • F — сесть • розыск +1★', 3.2);
 }
 function explode(x, z, big){
   sfx.expl();
@@ -3764,8 +3793,8 @@ function explode(x, z, big){
 /* ============================== РОЗЫСК ============================== */
 function starsWanted(){ return clamp(Math.ceil(S.wanted - 0.05), 0, 5); }
 function addCrime(v){
-  if(ED.party && !ED.special) return;          // на празднике розыск не растёт...
-  // ...но в «Специале» — полный набор: полиция, вертолёты, дроны и танки
+  /* ЛИЧНЫЙ РЕЖИМ (Специал): без полиции, воров и киллеров — розыска нет */
+  if(ED.special || ED.party) return;
   S.wanted = Math.min(5, S.wanted + v * (ED.crime || 1)); S.crimeTime = 0;
 }
 /* Полиция приезжает НА БАНДИТОВ (NPC): киллеров и чужую банду */
@@ -3778,6 +3807,8 @@ function lawHunt(ped, why){
   blip(700, 0.12, 0.35, 'square');
 }
 function updateWanted(dt){
+  /* ЛИЧНЫЙ РЕЖИМ (Специал): полиция, дроны, вертолёты и танки не выезжают */
+  if(ED.special){ S.wanted = 0; S.crimeTime = 0; LAW.target = null; return; }
   /* президента мира полиция не трогает: розыск не растёт и тут же гаснет */
   if(S.president){ S.wanted = 0; S.crimeTime = 0; return; }
   S.crimeTime += dt;
@@ -3913,9 +3944,12 @@ function startMission(i){
     showMsg(d.text, 'Мешки отмечены на карте • $' + d.pay, 3.2);
   } else if(d.type === 'escape'){
     markerGroup.visible = false;
-    S.wanted = 3; S.crimeTime = 0;
-    for(let k = 0; k < 4; k++) spawnCop(false);
-    showMsg(d.text, 'Награда $' + d.pay, 3.2);
+    if(ED.special){ showMsg(d.text, 'Личный режим: полиции нет — просто ускорься', 3.2); }
+    else {
+      S.wanted = 3; S.crimeTime = 0;
+      for(let k = 0; k < 4; k++) spawnCop(false);
+      showMsg(d.text, 'Награда $' + d.pay, 3.2);
+    }
   } else {
     markerGroup.visible = false;
     showMsg(d.text, d.pay ? ('Награда $' + d.pay) : 'Выполни задание, чтобы продолжить', 3.5);
@@ -4151,6 +4185,12 @@ function tryEnterCar(){
   if(best){
     S.jetY = 0; S.jetV = 0;                          // джетпак: приземлился перед посадкой
     const wasFree = (best.type === 'parked' || best.type === 'traffic');
+    /* --- ЧУЖАЯ МАШИНА: не куплена — сперва разбей стекло (стрельба) --- */
+    if(wasFree && !best.glassBroke && !best.mine && best.cabin && !best.boat){
+      showMsg('МАШИНА ЗАКРЫТА', 'Чужое авто — стреляй в стекло, чтобы забрать', 2.8);
+      blip(160, 0.08, 0.2, 'square');
+      return true;
+    }
     /* --- МОТОЦИКЛ С БАЙКЕРОМ: сбросить с него и уехать --- */
     if(best.type === 'bike'){
       const rx = best.x, rz = best.z;
@@ -5191,8 +5231,8 @@ function update(dt){
     waterMesh.geometry.computeVertexNormals();
   }
   garageUpdate(dt);
-  // киллеры держатся в городе, но появляются редко
-  if(ED.killers){
+  // киллеры держатся в городе, но появляются редко (в личном режиме — не появляются)
+  if(ED.killers && !ED.special){
     const kk = peds.filter(p => p.killer && !p.dead).length;
     if(kk < 1 && Math.random() < dt * 0.05){       // примерно раз в 20 секунд
       const a = Math.random() * Math.PI * 2, R = 70 + Math.random() * 60;
@@ -5205,7 +5245,7 @@ function update(dt){
     const allies = peds.filter(p => p.gang === 'ally' && !p.dead).length;
     const rivals = peds.filter(p => p.gang === 'rival' && !p.dead).length;
     if(allies < 5 && Math.random() < dt * 1.5) spawnGangPed('ally');
-    if(rivals < 7 && Math.random() < dt * 1.2) spawnGangPed('rival');
+    if(!ED.special && rivals < 7 && Math.random() < dt * 1.2) spawnGangPed('rival');
   }
   updateCamera(dt);
   flashLight.intensity = Math.max(0, flashLight.intensity - dt * 40);
@@ -6442,7 +6482,7 @@ function applyCallEff(c){
       const a = rand(-Math.PI, Math.PI);
       const car = makeCar(player.x + Math.cos(a) * 7.5, player.z + Math.sin(a) * 7.5,
                           a + Math.PI / 2, 'taxi', 0xffd23f);
-      car.type = 'parked';
+      car.type = 'parked'; car.mine = true;          // твоё такси — стекло не нужно
       showMsg('ТАКСИ ПРИБЫЛО', 'машина ждёт рядом • F — сесть', 3.2);
       blip(430, 0.1, 0.26, 'circle');
       callCd[c.num] = now + 75; break;
@@ -6466,6 +6506,7 @@ function applyCallEff(c){
       showMsg('МЕЙДЖОР СЛИЛ ТЕБЯ', 'розыск 2★ • копы уже едут', 3.4);
       callCd[c.num] = now + 140; break;
     case 'killer':{
+      if(ED.special){ showMsg('ЛИЧНЫЙ РЕЖИМ', 'киллеры отключены — угроз нет', 2.8); break; }
       spawnKiller();
       showMsg('⚠ НЕИЗВЕСТНЫЙ НОМЕР', 'кто-то уже идёт к тебе', 3.6);
       blip(160, 0.16, 0.4, 'square');
@@ -6803,7 +6844,7 @@ document.getElementById('start').addEventListener('click', () => {
   if(ED.killers) spawnKiller();                    // один киллер на старте, дальше редко
   if(ED.gangs){
     for(let i = 0; i < 5; i++) spawnGangPed('ally');
-    for(let i = 0; i < 7; i++) spawnGangPed('rival');
+    if(!ED.special) for(let i = 0; i < 7; i++) spawnGangPed('rival');
   }
   for(let i = 0; i < 10; i++){
     const p = randomRoadPoint(15);
@@ -6812,6 +6853,7 @@ document.getElementById('start').addEventListener('click', () => {
   spawnWeaponCrates(true);
   buildHeroGun(); buildViewModel();             // стартовый ствол в руках
   const c = makeCar(player.x + 6.5, player.z, 0, 'parked', 0xd94f4f);
+  c.mine = true;                                    // стартовая машина подарена тебе
   cars.push(c);
   if(OPT.missions){
     startMission(0);
@@ -6861,6 +6903,7 @@ window.__g3 = {S, M, player, camState, cars, peds, pickups, bullets, hero, scene
   callNumber, CONTACTS, answerCall, callStateGet: () => callState,
   SECRETS, giveJetpack, spawnJetBike, spawnSecretHeli, secretSpot, jetClearance,
   bustPlayer, updateJail, updateArrest, copNearR, moneyRain,
+  damageCar, breakGlass, spawnGangPed, addCrime, updateWanted, spawnCop,
   powerIncome, makePresident, makeMayor,
   post: () => post,
   NET, OPT, netStart, netStop, netCount, receiveMsg, incomingCall, inbox,

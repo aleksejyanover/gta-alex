@@ -574,7 +574,7 @@ function randomRoadPoint(away){
   return {x:WORLD/2, y:WORLD/2};
 }
 function spawnTraffic(){
-  for(let i = 0; i < 42; i++){
+  for(let i = 0; i < 56; i++){
     const p = randomRoadPoint(500);
     const vert = Math.abs(p.x % CELL) < 1;
     const dir = Math.random() < 0.5 ? 1 : -1;
@@ -585,7 +585,7 @@ function spawnTraffic(){
     cars.push(c);
   }
   // припаркованные
-  for(let i = 0; i < 34; i++){
+  for(let i = 0; i < 48; i++){
     const p = randomRoadPoint(260);
     const vert = Math.abs(((p.x % CELL) + CELL) % CELL) < 1;
     const side = Math.random() < 0.5 ? 1 : -1;
@@ -1086,7 +1086,7 @@ function shoot(){
       if(c.dead || c === S.inCar) continue;
       if(Math.hypot(c.x - player.x, c.y - player.y) > w.range + 18) continue;
       if(((c.x - player.x) * fx + (c.y - player.y) * fy) < 0) continue;
-      damageCar(c, w.dmg * 0.7, 0, 0); hit = true; break;
+      damageCar(c, w.dmg * 0.7, 0, 0, true); hit = true; break;
     }
     noise(0.07, w.id === 'fist' ? 0.25 : 0.4, w.id === 'fist' ? 500 : 3200, 'bandpass');
     blip(w.id === 'fist' ? 130 : 900, 0.07, 0.22, 'square');
@@ -1202,8 +1202,8 @@ function updateBullets(dt){
         }
         if(!gone) for(const c of cars){
           if(c.dead || c === S.inCar) continue;
-          if(c.type === 'parked' || c.type === 'traffic') continue;
-          if(dist(b.x, b.y, c.x, c.y) < c.r + 4){ damageCar(c, 34, b.vx, b.vy); gone = true; break; }
+          // припаркованные и в движении — теперь можно расстрелить (стекло чужой машины)
+          if(dist(b.x, b.y, c.x, c.y) < c.r + 4){ damageCar(c, 34, b.vx, b.vy, true); gone = true; break; }
         }
         if(!gone) for(const h of helis){            // сбить вертолёт
           if(h.dead || h.leaving) continue;
@@ -1252,8 +1252,17 @@ function boom(x, y, big){
   for(const p of peds){ if(!p.dead && dist(p.x, p.y, x, y) < 100) killPed(p, true, false); }
   if(!S.dead && dist(player.x, player.y, x, y) < 110) damagePlayer(45);
 }
-function damageCar(c, dmg, vx, vy){
+function damageCar(c, dmg, vx, vy, fromPlayer){
   if(c.dead) return;
+  /* ===== ЧУЖАЯ МАШИНА: сперва стекло, потом угнать ===== */
+  if(fromPlayer && !c.glassBroke && !c.mine &&
+     (c.type === 'parked' || c.type === 'traffic')){
+    if(c.glassHp === undefined) c.glassHp = 42;
+    c.glassHp -= dmg;
+    parts.push({x:c.x + rand(-10,10), y:c.y + rand(-10,10), vx:rand(-50,50), vy:rand(-50,50),
+                life:0.3, max:0.3, size:3, col:'#dff0ff'});
+    if(c.glassHp <= 0) breakGlass(c);
+  }
   c.hp -= dmg;
   c.flash = 0.15;
   parts.push({x:c.x + rand(-10,10), y:c.y + rand(-10,10), vx:rand(-40,40) + (vx||0)*0.1, vy:rand(-40,40) + (vy||0)*0.1, life:0.25, max:0.25, size:3, col:'#ffd76a'});
@@ -1263,6 +1272,17 @@ function damageCar(c, dmg, vx, vy){
     if(c === S.inCar){ exitCar(true); damagePlayer(35); }
     if(c.type === 'police'){ addCrime(1.5, c.x, c.y); }
   }
+}
+/* стекло чужой машины разбито — можно забирать, но это видели свидетели */
+function breakGlass(c){
+  c.glassBroke = true;
+  for(let k = 0; k < 8; k++)
+    parts.push({x:c.x + rand(-14,14), y:c.y + rand(-14,14), vx:rand(-70,70), vy:rand(-70,70),
+                life:0.35, max:0.35, size:3, col:'#dff0ff'});
+  blip(1500, 0.1, 0.16, 'square');
+  addCrime(1, c.x, c.y);                            // разбитое стекло — +1★ розыска
+  statAdd('glassBroken', 1);
+  showMsg('СТЕКЛО РАЗБИТО', 'Чужая машина открыта • F — сесть • розыск +1★', 3.2);
 }
 function damagePlayer(d){
   if(S.dead || !player.alive) return;
@@ -1541,6 +1561,13 @@ function tryEnterCar(){
     if(dd < bd && Math.abs(c.speed) < 90){ bd = dd; best = c; }
   }
   if(best){
+    /* --- ЧУЖАЯ МАШИНА: не куплена — сперва разбей стекло (стрельба) --- */
+    if((best.type === 'parked' || best.type === 'traffic') &&
+       !best.glassBroke && !best.mine){
+      showMsg('МАШИНА ЗАКРЫТА', 'Чужое авто — стреляй в стекло, чтобы забрать', 2.8);
+      blip(160, 0.08, 0.2, 'square');
+      return;
+    }
     S.inCar = best; best.driver = true;
     if(best.type === 'parked' || best.type === 'traffic') best.type = 'player';
     showMsg('', '', 0.01);
@@ -2016,10 +2043,21 @@ function drawCar(c){
     ctx.fillStyle = 'rgba(0,0,0,0.18)';
     ctx.fillRect(c.w/2 - 12, -c.h/2 + 2, 6, c.h - 4);
     ctx.fillRect(-c.w/2 + 6, -c.h/2 + 2, 6, c.h - 4);
-    // стекла
-    ctx.fillStyle = c.type === 'police' ? '#9fd4ff' : 'rgba(120,175,215,0.9)';
-    ctx.fillRect(4, -c.h/2 + 3, 9, c.h - 6);
-    ctx.fillRect(-13, -c.h/2 + 3, 8, c.h - 6);
+    // стекла (разбитые — тёмные с трещинами)
+    if(c.glassBroke){
+      ctx.fillStyle = '#0b0e13';
+      ctx.fillRect(4, -c.h/2 + 3, 9, c.h - 6);
+      ctx.fillRect(-13, -c.h/2 + 3, 8, c.h - 6);
+      ctx.strokeStyle = 'rgba(200,230,255,0.75)'; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(5, -c.h/2 + 5); ctx.lineTo(11, c.h/2 - 6);
+      ctx.moveTo(11, -c.h/2 + 4); ctx.lineTo(6, c.h/2 - 5);
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = c.type === 'police' ? '#9fd4ff' : 'rgba(120,175,215,0.9)';
+      ctx.fillRect(4, -c.h/2 + 3, 9, c.h - 6);
+      ctx.fillRect(-13, -c.h/2 + 3, 8, c.h - 6);
+    }
     // фары
     ctx.fillStyle = '#fff3c4';
     ctx.fillRect(c.w/2 - 3, -c.h/2 + 2, 3, 5);
@@ -3395,7 +3433,7 @@ window.__gta = {S, player, cam, cars, peds, pickups, M, mouse, keys, shoot, bull
   PLACES, placeNear, enterPlace, exitPlace, placeAction, placeUpdate, placeBuy,
   phoneOpen, callNumber, CONTACTS, answerCall, callStateGet: () => callState,
   powerIncome, makePresident, makeMayor, camZoom2D,
-  bustPlayer, updateJail, updateArrest, copNearR,
+  bustPlayer, updateJail, updateArrest, copNearR, damageCar, breakGlass, tryEnterCar,
   drones, bombs, spawnDrone, damageDrone, updateDrones, updateBombs};
 requestAnimationFrame(loop);
 boot();
