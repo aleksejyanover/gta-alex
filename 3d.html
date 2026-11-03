@@ -268,12 +268,12 @@ const E = new URLSearchParams(location.search).get('e') || '3';
 const ED = ({
   '3': {title:'GTA АЛЕКС 3', short:'GTA АЛЕКС 3', sub:'ОТ ПЕРВОГО ЛИЦА • АРКАДА • КЛАССИКА',
         tod:0.38, dayLen:240, skyDay:0x8ec9ee, skyNight:0x0a1024, skySet:0xff8a4a,
-        palette:null, cars:50, peds:60, hud:'#5c9cff', fp:true, real:1, killers:1, phone:true},
+        palette:null, cars:76, peds:78, hud:'#5c9cff', fp:true, real:1, killers:1, phone:true},
   // МРАЧНЫЙ КРИМИНАЛ: дождь, строгая полиция, тайные сделки, киллеры
   '4': {title:'GTA АЛЕКС 4', short:'GTA АЛЕКС 4', sub:'ОТ ПЕРВОГО ЛИЦА • ДОЖДЬ • СДЕЛКИ • КИЛЛЕРЫ',
         tod:0.66, dayLen:320, skyDay:0x6b7480, skyNight:0x090c13, skySet:0x3f4650,
         palette:[0x5a6068,0x4e555e,0x666c74,0x474d55,0x5e646c,0x535960], rain:true,
-        tint:'#8a929c', tintA:0.28, cars:48, peds:56, fogNear:60, fogFar:330,
+        tint:'#8a929c', tintA:0.28, cars:72, peds:74, fogNear:60, fogFar:330,
         crime:1.5, strict:true, deal:true, nightSteal:true, copRate:1.6, decay:0.3,
         hud:'#8fb8d8', fp:true, real:2, killers:2, phone:true,
         missions:[
@@ -289,7 +289,7 @@ const ED = ({
   '5': {title:'GTA АЛЕКС 5', short:'GTA АЛЕКС 5', sub:'ОТ ПЕРВОГО ЛИЦА • ГОНКИ • МАКС. РЕАЛИЗМ',
         tod:0.35, dayLen:300, skyDay:0x7ec8f5, skyNight:0x0a1024, skySet:0xffa05c,
         palette:[0xe8a05a,0x6fc0e0,0xf0d080,0x8fd0a0,0xff9a8a,0xc8a0e0,0xf2f0e8,0x6ad0c0],
-        cars:70, peds:82, hud:'#ff9a3d', race:true, ramps:true,
+        cars:105, peds:106, hud:'#ff9a3d', race:true, ramps:true,
         fp:true, real:3, killers:3, phone:true,
         missions:[
           {type:'car',     text:'Сядь в машину — начинаем турнир'},
@@ -304,7 +304,7 @@ const ED = ({
   '6': {title:'GTA АЛЕКС 6', short:'GTA АЛЕКС 6', sub:'BETA • ОТ ПЕРВОГО ЛИЦА • ПЛЯЖ • МАКС. РЕАЛИЗМ',
         tod:0.68, dayLen:380, skyDay:0x8ec9ee, skyNight:0x070518, skySet:0xff5ca8,
         palette:[0x7a5cd0,0x4a90d0,0xd05cb0,0x50c8d0,0x9a6ae0,0x3a3f6a,0x2f6f9a],
-        neon:true, beta:true, coast:true, sport:true, cars:64, peds:70, hud:'#ff5ca8',
+        neon:true, beta:true, coast:true, sport:true, cars:96, peds:92, hud:'#ff5ca8',
         fp:true, real:3, killers:3, phone:true, support:true,
         missions:[
           {type:'car',     text:'Сядь в спорткар — жми F'},
@@ -318,7 +318,7 @@ const ED = ({
   'sa': {title:'GTA АЛЕКС: SAN ANDREAS', short:'SAN ANDREAS', sub:'ОТ ПЕРВОГО ЛИЦА • БАНДЫ • ГАРАЖ • ПРИЧЁСКА',
         tod:0.3, dayLen:260, skyDay:0x9ecfe0, skyNight:0x0c0f1e, skySet:0xffb060,
         palette:[0xd8b878,0xc9a060,0xe0c890,0xb09060,0xd8c0a0,0xc0a878],
-        tint:'#d8b070', tintA:0.42, cars:52, peds:62, gangs:true, hud:'#4bd86a',
+        tint:'#d8b070', tintA:0.42, cars:78, peds:82, gangs:true, hud:'#4bd86a',
         fp:true, real:1, killers:2, phone:true, garage:true, crew:true, style:true,
         missions:[
           {type:'car',      text:'Сядь в машину — начинаем войну за район'},
@@ -334,7 +334,7 @@ const ED = ({
         tod:0.62, dayLen:420, skyDay:0x8ec9ee, skyNight:0x070518, skySet:0xff7ab8,
         palette:[0xff8ac0,0xffd166,0x7ad7f0,0xa0e8a0,0xfff0f5,0xffb3c7,
                  0x9a6ae0,0x50c8d0,0xf2f0e8,0x6ad0c0],
-        special:true, party:true, cars:76, peds:92, hud:'#ff9ac8',
+        special:true, party:true, cars:114, peds:120, hud:'#ff9ac8',
         // графика уровня GTA 6 и выше: вид от первого лица + HQ-рендер
         fp:true, real:3, neon:true, coast:true, sport:true,
         // всё лучшее из остальных версий: гонки, банды, гараж, телефон, поддержка
@@ -352,7 +352,7 @@ const ED = ({
         ]}
 })[E] || ({
   title:'GTA АЛЕКС 3', short:'GTA АЛЕКС 3', sub:'КЛАССИЧЕСКАЯ ТРОЙКА', tod:0.38, dayLen:240,
-  skyDay:0x8ec9ee, skyNight:0x0a1024, skySet:0xff8a4a, palette:null, cars:48, peds:60, hud:'#5c9cff'
+  skyDay:0x8ec9ee, skyNight:0x0a1024, skySet:0xff8a4a, palette:null, cars:72, peds:78, hud:'#5c9cff'
 });
 document.title = ED.title;
 document.querySelectorAll('.logo .name').forEach(el => {
@@ -385,7 +385,7 @@ function specialLockInfo(){
 function specialLocked(){ return E === 'special' && !specialIsOpen(); }
 
 /* ============================== МИР (1 юнит = 1 метр) ============================== */
-const GRID = 10, CELL = 46, ROAD = 11.2, LANE = 3, WALK = 2.6, WORLD = GRID * CELL;
+const GRID = 16, CELL = 46, ROAD = 11.2, LANE = 3, WALK = 2.6, WORLD = GRID * CELL;
 // побережье (GTA Алекс 6): песок с этой линии, океан — с этой
 const SAND_Z = (GRID - 1) * CELL + ROAD/2;   // начало пляжа
 const WATER_Z = WORLD - 20;                  // начало океана
@@ -395,10 +395,23 @@ const buildings = [], parks = [], trees = [], blockRects = [];
 const PALETTE = ED.palette || [0xce5e4e, 0xe8b858, 0x7ea0bf, 0x8fb084, 0xc49475, 0xa096b4, 0xc6c6c2, 0x707a86, 0xde8e66, 0x8a929e];
 const NEON = [0xff2fd0, 0x2ff0ff, 0xb02fff, 0xfff02f, 0x2fff9f, 0xff5c2f];
 
+/* ===== НЕСКОЛЬКО ГОРОДОВ И СТРАН: большие регионы со своим настроением ===== */
+const REGIONS = [
+  {name:'АЛЕКСГРАД',  sub:'СТОЛИЦА • ЦЕНТР СТРАНЫ',   pal:[0xce5e4e, 0xe8b858, 0x7ea0bf, 0x8fb084, 0xc49475, 0xde8e66]},
+  {name:'ПОРТ-СИТИ',  sub:'ПОРТОВЫЙ ГОРОД У МОРЯ',    pal:[0x7ea0bf, 0xc6c6c2, 0x8a929e, 0xa096b4, 0x707a86, 0x9fb8c8]},
+  {name:'САНТО-ВАЛЕ', sub:'ЮЖНАЯ СТРАНА • ПУСТЫНЬ',  pal:[0xde8e66, 0xe8b858, 0xc49475, 0xd8b070, 0xb99b6a, 0xd9a066]},
+  {name:'НОВЫЙ НЕОН',  sub:'НОЧНОЙ РАЙОН • СВЕТЫ',    pal:[0x8fb084, 0xa096b4, 0x5a6b8c, 0x39405c, 0x6a5a8c, 0x44607a]}
+];
+function regionAt(x, z){
+  const rx = x < WORLD/2 ? 0 : 1, rz = z < WORLD/2 ? 0 : 1;
+  return REGIONS[rz * 2 + rx];
+}
+
 function addBuilding(x, z, w, h, tall){
   if(w < 3 || h < 3) return;
   buildings.push({x, z, w, h, hgt: tall ? rand(15, 26) : rand(4.5, 17),
-    col: pick(PALETTE), neon: pick(NEON), cx: x + w/2, cz: z + h/2});
+    col: ED.palette ? pick(PALETTE) : pick(regionAt(x, z).pal),
+    neon: pick(NEON), cx: x + w/2, cz: z + h/2});
 }
 /* ===== СПЕЦИАЛЬНЫЕ ЛОКАЦИИ: занимают целые кварталы ===== */
 const SPECIAL_CELLS = [
@@ -460,15 +473,18 @@ function buildIndex(){
     (cellB[k] = cellB[k] || []).push(b);
   }
 }
-function nearbyBuildings(x, z){
-  const gx = Math.floor(x / CELL), gz = Math.floor(z / CELL), out = [];
+const _nbScratch = [];                            // буфер collideWorld: сотни вызовов за кадр
+function nearbyBuildings(x, z, out){
+  const res = out || [];
+  res.length = 0;
+  const gx = Math.floor(x / CELL), gz = Math.floor(z / CELL);
   for(let i = gx - 1; i <= gx + 1; i++)
     for(let j = gz - 1; j <= gz + 1; j++){
       if(i < 0 || j < 0 || i >= GRID || j >= GRID) continue;
       const b = cellB[i + '_' + j];
-      if(b) for(let k = 0; k < b.length; k++) out.push(b[k]);
+      if(b) for(let k = 0; k < b.length; k++) res.push(b[k]);
     }
-  return out;
+  return res;
 }
 function resolveRect(o, r, R){
   const cx = clamp(o.x, R.x, R.x + R.w), cz = clamp(o.z, R.z, R.z + R.h);
@@ -487,9 +503,13 @@ function resolveRect(o, r, R){
 }
 function collideWorld(o, r){
   let hit = false;
-  const bs = nearbyBuildings(o.x, o.z);
-  for(let i = 0; i < bs.length; i++)
-    if((!bs[i].entered || o === player) && resolveRect(o, r, bs[i])) hit = true;
+  const bs = nearbyBuildings(o.x, o.z, _nbScratch);
+  const onRoof = (o === player) ? (S.roofY || 0) : 0;   // на крыше этажи ниже не мешают
+  for(let i = 0; i < bs.length; i++){
+    if(!(!bs[i].entered || o === player)) continue;
+    if(onRoof > 0 && (bs[i].hgt || 0) <= onRoof + 0.4) continue;   // можно ходить над низкими
+    if(resolveRect(o, r, bs[i])) hit = true;
+  }
   if(S.inside && S.inside.p.rects)                         // стены комнаты
     for(const w of S.inside.p.rects) if(resolveRect(o, r, w)) hit = true;
   if(S.inside && o === player){                            // игрок не выйдет за периметр дома
@@ -1723,7 +1743,9 @@ const S = {
   president:false, mayor:false,                 // власти: страна и город
   presT:0, mayT:0,                              // таймеры выплат казны и города
   jailT:0, arrestT:0, arrestSaid:0,                // тюрьма: срок, счётчик поимки
-  rainT:0, rainSaid:0                           // СПЕЦИАЛ: деньги с неба
+  rainT:0, rainSaid:0,                             // СПЕЦИАЛ: деньги с неба
+  roofY:0, roofB:null, roofV:0, roofH:12,           // лестницы: высота крыши, падение, откуда сорвался
+  climb:null, ladder:null, region:null              // подъём по лестнице и текущий город
 };
 /* ==================== АРСЕНАЛ: ножики, пистолеты, винтовки, базуки ==================== */
 const WEAPONS = [
@@ -2269,7 +2291,7 @@ function spawnTraffic(){
     c.speed = kind === 'sport' ? rand(15, 20) : rand(7, 12);
     cars.push(c);
   }
-  for(let i = 0; i < 36; i++){
+  for(let i = 0; i < 56; i++){
     const p = randomRoadPoint(15);
     const vert = Math.abs(((p.x % CELL) + CELL) % CELL) < 1;
     const side = Math.random() < 0.5 ? 1 : -1;
@@ -2284,7 +2306,7 @@ function spawnTraffic(){
 }
 /* --- мотоциклы: часть ездит с байкерами, часть стоит на обочине --- */
 function spawnBikes(){
-  const nRide = 6, nPark = 14;
+  const nRide = 9, nPark = 20;
   for(let i = 0; i < nRide; i++){
     const p = randomRoadPoint(28);
     const vert = Math.abs(((p.x % CELL) + CELL) % CELL) < 1;
@@ -2764,7 +2786,9 @@ function driveGrid(c, dt){
   const px = c.x + Math.cos(c.angle) * 5.5, pz = c.z + Math.sin(c.angle) * 5.5;
   for(const o of cars){
     if(o === c || o.dead) continue;
-    if(dist(px, pz, o.x, o.z) < 3.4){ c.speed = Math.min(c.speed, 1.2); break; }
+    const odx = o.x - px, odz = o.z - pz;            // быстрый отсев по коробке, без dist()
+    if(odx < -3.4 || odx > 3.4 || odz < -3.4 || odz > 3.4) continue;
+    if(odx*odx + odz*odz < 11.56){ c.speed = Math.min(c.speed, 1.2); break; }
   }
 }
 /* катер: патрулирует океан, на сушу не выходит */
@@ -4597,8 +4621,44 @@ function updatePlayer(dt){  player.shootCd -= dt; player.hurtCd -= dt; player.da
       if(S.jetY <= 0){ S.jetY = 0; S.jetV = 0; }
     }
     const jetFly = S.jetY > 0.35;
+    /* ===== ЛЕСТНИЦЫ И КРЫШИ: подъём, спуск, падение с кромки ===== */
+    S.ladder = ladderNear();
+    if(S.climb){
+      const c = S.climb;
+      c.t += dt;
+      const k = clamp(c.t / c.dur, 0, 1), e = k * k * (3 - 2 * k);   // плавный разгон
+      S.roofY = c.from + (c.to - c.from) * e;
+      player.x = c.fx + (c.tx - c.fx) * e;
+      player.z = c.fz + (c.tz - c.fz) * e;
+      if(k >= 1){
+        S.roofY = c.to;
+        S.roofB = c.up ? c.l.b : null;
+        S.roofH = c.up ? c.l.b.hgt : 0;
+        S.roofV = 0; S.climb = null;
+        if(c.up) showMsg('НА КРЫШЕ', 'G — спуститься в переулок • сойди с кромки, чтобы спрыгнуть', 3.4);
+      }
+    } else if(S.roofY > 0){
+      const b = S.roofB;
+      const inside = b && player.x > b.x - 0.3 && player.x < b.x + b.w + 0.3 &&
+                     player.z > b.z - 0.3 && player.z < b.z + b.h + 0.3;
+      if(b && !inside){ S.roofH = b.hgt; S.roofB = null; }   // сорвался с кромки — падаем
+      if(!S.roofB){
+        S.roofV = Math.min(S.roofV + 34 * dt, 26);
+        S.roofY -= S.roofV * dt;
+        if(S.roofY <= 0){
+          const fall = Math.max(S.roofH || 12, 12);
+          S.roofY = 0; S.roofB = null; S.roofV = 0;
+          blip(95, 0.14, 0.26, 'sine');
+          S.shake = Math.max(S.shake, 0.7);
+          if(fall > 11 && !S.god && player.alive){
+            damagePlayer(Math.round((fall - 11) * 2.6));
+            showMsg('ЖЁСТКОЕ ПАДЕНИЕ', 'урон от высоты ' + Math.round(fall) + ' м', 2.4);
+          }
+        }
+      } else S.roofV = 0;
+    }
     /* ===== ПРЫЖОК: ПРОБЕЛ или M (можно подпрыгивать и на джетпаке с земли) ===== */
-    if((keys.Space || keys.KeyM) && player.jumpCd <= 0 && S.jumpY <= 0.001 && S.jumpV === 0){
+    if(!S.climb && (keys.Space || keys.KeyM) && player.jumpCd <= 0 && S.jumpY <= 0.001 && S.jumpV === 0){
       S.jumpV = 7.4; player.jumpCd = 0.35;
       blip(300, 0.05, 0.16, 'sine');
     }
@@ -4607,7 +4667,7 @@ function updatePlayer(dt){  player.shootCd -= dt; player.hurtCd -= dt; player.da
       S.jumpY = Math.max(0, S.jumpY + S.jumpV * dt);
       if(S.jumpY <= 0){ S.jumpY = 0; S.jumpV = 0; }
     }
-    const airH = S.jetY + S.jumpY;               // общая высота над землёй
+    const airH = S.jetY + S.jumpY + S.roofY;       // общая высота над землёй (крыша + прыжок)
     const f = {x:Math.cos(camState.yaw), z:Math.sin(camState.yaw)};
     const rt = {x:-f.z, z:f.x};
     let mx = 0, mz = 0;
@@ -4615,15 +4675,15 @@ function updatePlayer(dt){  player.shootCd -= dt; player.hurtCd -= dt; player.da
     if(keys.KeyS || keys.ArrowDown){ mx -= f.x; mz -= f.z; }
     if(keys.KeyD || keys.ArrowRight){ mx += rt.x; mz += rt.z; }
     if(keys.KeyA || keys.ArrowLeft){ mx -= rt.x; mz -= rt.z; }
-    const l = Math.hypot(mx, mz);
+    const l = S.climb ? 0 : Math.hypot(mx, mz);     // по лестнице ноги заняты
     let sp = jetFly ? 11 : 7;                    // в полёте чуть быстрее — «.glide»
     if(player.dashT > 0){ player.dashT -= dt; sp = 17; }
     if(l > 0){
       mx /= l; mz /= l;
       player.x += mx * sp * dt;
       player.z += mz * sp * dt;
-      /* выше крыш — стены не мешают (внизу обычные коллизии) */
-      if(!(jetFly && S.jetY > jetClearance())) collideWorld(player, player.r);
+      /* выше крыш — стены не мешают (внизу обычные коллизии); на лестнице идём сквозь стену */
+      if(!S.climb && !(jetFly && S.jetY > jetClearance())) collideWorld(player, player.r);
       player.angle = Math.atan2(mz, mx);
       player.anim += dt * (sp > 10 ? 16 : 9);
       player.moving = lerp(player.moving, 1, clamp(dt*8,0,1));
@@ -4634,7 +4694,7 @@ function updatePlayer(dt){  player.shootCd -= dt; player.hurtCd -= dt; player.da
     const wCur = WP();
     if(mouse.down && (wCur.auto || wCur.melee || mouse.edge)){ shoot(); mouse.edge = false; }
     // анимация героя
-    hero.g.position.set(player.x, S.jetY + S.jumpY, player.z);
+    hero.g.position.set(player.x, airH, player.z);
     jetFx(jetFly && S.jetV > 0.4);               // пламя ранца при подъёме
     hero.g.rotation.y = -player.angle;
     const sw = Math.sin(player.anim) * 0.75 * player.moving;
@@ -4655,6 +4715,7 @@ function respawn(){
   if(S.inside) exitPlace(true);                        // очнулся — вышел из дома
   const wasWanted = S.wanted;                         // с розыском — не в больницу, а в участок
   S.dead = false; S.health = S.maxHealth; S.wanted = 0;
+  S.roofY = 0; S.roofB = null; S.roofV = 0; S.climb = null;   // ожил на земле
   if(S.inCar) exitCar(true);
   for(let i = cars.length - 1; i >= 0; i--) if(cars[i].type === 'police' || cars[i].type === 'tank') cars.splice(i, 1);
   for(let i = helis.length - 1; i >= 0; i--){ scene.remove(helis[i].group); helis.splice(i, 1); }
@@ -4683,6 +4744,7 @@ function bustPlayer(){
   S.jailT = 12 + stars * 8;                          // срок в секундах
   S.wanted = 0; S.crimeTime = 0; S.arrestT = 0;
   S.jetY = 0; S.jetV = 0; S.jumpY = 0; S.jumpV = 0;
+  S.roofY = 0; S.roofB = null; S.roofV = 0; S.climb = null;   // с крыши — прямиком в участок
   if(S.inCar) exitCar(true);
   if(S.inside) exitPlace(true);
   LAW.target = null;
@@ -4707,7 +4769,7 @@ function updateJail(dt){
 /* ===== ЖИВОЙ АРЕСТ: коп поймал тебя на улице ===== */
 function copNearR(){
   if(S.wanted < 1 || S.president || S.jailT > 0) return 0;
-  if(S.jetY + S.jumpY > 1.2) return 0;               // в воздухе тебя не схватят
+  if(S.jetY + S.jumpY + S.roofY > 1.2) return 0;     // в воздухе или на крыше тебя не схватят
   for(const p of peds){
     if(!p.cop || p.dead) continue;
     if(dist(p.x, p.z, player.x, player.z) < 2.2) return 1;
@@ -4824,17 +4886,19 @@ function updateCars(dt){
     }
     syncCar(c, dt);
   }
-  // столкновения машин
+  // столкновения машин (отсев по коробке — без перебора гипотенуз)
   for(let i = 0; i < cars.length; i++){
     const a = cars[i];
     if(a.dead) continue;
     for(let j = i + 1; j < cars.length; j++){
       const b = cars[j];
       if(b.dead) continue;
-      const dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz);
+      const dx = b.x - a.x, dz = b.z - a.z;
       const min = a.r + b.r;
-      if(d < min && d > 0.01){
-        const p = (min - d) / d * 0.5;
+      if(dx < -min || dx > min || dz < -min || dz > min) continue;
+      const d2 = dx*dx + dz*dz;
+      if(d2 < min*min && d2 > 0.0001){
+        const d = Math.sqrt(d2), p = (min - d) / d * 0.5;
         a.x -= dx*p; a.z -= dz*p; b.x += dx*p; b.z += dz*p;
         const rel = Math.abs(a.speed - b.speed);
         if(rel > 9){
@@ -4852,7 +4916,9 @@ function updateCars(dt){
     if(c.dead || Math.abs(c.speed) < 7) continue;
     for(const p of peds){
       if(p.dead) continue;
-      if(dist(p.x, p.z, c.x, c.z) < c.r + p.r){
+      const pdx = p.x - c.x, pdz = p.z - c.z, pr = c.r + p.r;
+      if(pdx < -pr || pdx > pr || pdz < -pr || pdz > pr) continue;
+      if(pdx*pdx + pdz*pdz < pr*pr){
         killPed(p, true, c === S.inCar);
         c.speed *= 0.94;
         noise(0.1, 0.25, 380);
@@ -4870,11 +4936,112 @@ function updateCars(dt){
 const camTarget = new THREE.Vector3();
 const camDesired = new THREE.Vector3();
 /* ====================== ВЕРТОЛЁТ: посадка и полёт ====================== */
+/* ===== СКРЫТЫЕ ЛЕСТНИЦЫ В ПЕРЕУЛКАХ: подъём и спуск с крыш ===== */
+const LADDERS = [];
+function addLadder(b, side, forceOpen){
+  if(b.special || b.hgt < 5.5) return false;
+  let lx, lz, nx, nz;
+  if(side === 0){ lx = b.cx; lz = b.z - 0.12; nx = 0; nz = -1; }
+  else if(side === 1){ lx = b.x + b.w + 0.12; lz = b.cz; nx = 1; nz = 0; }
+  else if(side === 2){ lx = b.cx; lz = b.z + b.h + 0.12; nx = 0; nz = 1; }
+  else { lx = b.x - 0.12; lz = b.cz; nx = -1; nz = 0; }
+  /* лестница живёт в переулке: за стеной открытый проход, а не чужой дом */
+  let open = true;
+  for(let d = 2.2; d <= 4.4; d += 1.1){
+    const px = lx + nx * d, pz = lz + nz * d;
+    for(const q of nearbyBuildings(px, pz))
+      if(px > q.x - 0.4 && px < q.x + q.w + 0.4 && pz > q.z - 0.4 && pz < q.z + q.h + 0.4){ open = false; break; }
+    if(!open) break;
+  }
+  if(!open && !forceOpen) return false;
+  const tx = clamp(lx - nx * 1.4, b.x + 1.2, b.x + b.w - 1.2);
+  const tz = clamp(lz - nz * 1.4, b.z + 1.2, b.z + b.h - 1.2);
+  /* сама лестница: два рельса и жёлтые ступени — заметна в сумерках */
+  const g = new THREE.Group();
+  const H = b.hgt + 0.7;
+  const railM = new THREE.MeshLambertMaterial({color:0xd8d8de});
+  const rungM = new THREE.MeshLambertMaterial({color:0xffd75e});
+  for(const sx of [-0.36, 0.36]){
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.09, H, 0.09), railM);
+    rail.position.set(sx, H/2, 0); rail.castShadow = true; g.add(rail);
+  }
+  for(let y = 0.5; y < H - 0.25; y += 0.55){
+    const rung = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.07, 0.08), rungM);
+    rung.position.set(0, y, 0); g.add(rung);
+  }
+  const lamp = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.3),
+    new THREE.MeshBasicMaterial({color:0xffe89a}));
+  lamp.position.set(0, H + 0.1, 0); g.add(lamp);
+  g.position.set(lx, 0, lz);
+  g.rotation.y = Math.atan2(nx, nz);
+  scene.add(g);
+  LADDERS.push({x:lx, z:lz, nx, nz, b, tx, tz, g});
+  return true;
+}
+function buildLadders(forced){
+  LADDERS.length = 0;
+  /* площадки на крышах гарантированно получают лестницу — иначе на них не забраться */
+  if(forced) for(const b of forced){
+    if(LADDERS.some(l => l.b === b)) continue;
+    for(const s of [0, 1, 2, 3]) if(addLadder(b, s, true)) break;
+  }
+  for(const b of buildings){
+    if(LADDERS.length >= 64) break;
+    if(LADDERS.some(l => l.b === b)) continue;
+    if(Math.random() > 0.16) continue;
+    addLadder(b, (Math.random() * 4) | 0, false);
+  }
+}
+/* ===== ВЕРТОЛЁТНЫЕ ПЛОЩАДКИ НА КРЫШАХ: редкие, но видны сверху ===== */
+function buildRooftopPads(){
+  const out = [];
+  for(const q of [[0,0], [1,0], [0,1], [1,1]]){
+    if(out.length >= 3) break;
+    const cand = buildings.filter(b => !b.special && b.hgt >= 13 &&
+      (b.cx < WORLD/2) === (q[0] === 0) && (b.cz < WORLD/2) === (q[1] === 0));
+    if(!cand.length) continue;
+    const b = cand[(Math.random() * cand.length) | 0];
+    out.push(b);
+    const pad = new THREE.Mesh(new THREE.CylinderGeometry(4.6, 4.6, 0.1, 24),
+      new THREE.MeshLambertMaterial({color:0x3a3f45}));
+    pad.position.set(b.cx, b.hgt + 0.05, b.cz); pad.receiveShadow = true; scene.add(pad);
+    const mark = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.1, 0.05, 20),
+      new THREE.MeshBasicMaterial({color:0xf0f0f0}));
+    mark.position.set(b.cx, b.hgt + 0.13, b.cz); scene.add(mark);
+    const heli = makeHeli(b.cx, b.cz, Math.random() * Math.PI * 2);
+    heli.y = b.hgt; heli.parked = true;
+    helis.push(heli);
+  }
+  return out;
+}
+buildLadders(buildRooftopPads());                   // позже genCity: нужны scene, helis и индекс домов
+function ladderNear(){
+  if(S.dead || S.inside || S.inCar || S.inHeli || S.climb) return null;
+  const onRoof = S.roofY > 0.3;
+  let best = null, bd = onRoof ? 3.4 : 3.0;
+  for(const l of LADDERS){
+    if(onRoof && l.b !== S.roofB) continue;          // на крыше — только своя лестница
+    const px = onRoof ? l.tx : l.x, pz = onRoof ? l.tz : l.z;
+    const d = dist(px, pz, player.x, player.z);
+    if(d < bd){ bd = d; best = l; }
+  }
+  return best;
+}
+function climbLadder(l){
+  if(S.climb) return;
+  const up = S.roofY < 0.3;
+  S.climb = {t:0, dur:1.3, up, l,
+             fx: player.x, fz: player.z,
+             tx: up ? l.tx : l.x, tz: up ? l.tz : l.z,
+             from: S.roofY, to: up ? l.b.hgt : 0};
+  blip(360, 0.06, 0.22, 'sine');
+}
 function heliNear(){
   let best = null, bd = 7.5;
+  const myH = S.jetY + S.jumpY + S.roofY;             // своя высота: на крыше — своя площадка
   for(const h of helis){
     if(h.dead) continue;
-    if(Math.abs(h.y || 0) > 3) continue;                  // в воздухе — не сядешь
+    if(Math.abs((h.y || 0) - myH) > 3) continue;      // не твой уровень — не сядешь
     const d = dist(h.x, h.z, player.x, player.z);
     if(d < bd){ bd = d; best = h; }
   }
@@ -4898,6 +5065,15 @@ function exitHeli(){
   player.x = h.x + Math.cos(a) * 3.4;
   player.z = h.z + Math.sin(a) * 3.4;
   collideWorld(player, player.r);
+  /* вышел над крышей — встал на неё; над пустотой — падение с уроном */
+  const hy = h.y || 0;
+  if(hy > 3){
+    let rb = null;
+    for(const b of buildings)
+      if(player.x > b.x && player.x < b.x + b.w && player.z > b.z && player.z < b.z + b.h &&
+         hy >= b.hgt - 1 && hy <= b.hgt + 1.5){ rb = b; break; }
+    S.roofY = hy; S.roofB = rb; S.roofH = rb ? rb.hgt : hy; S.roofV = 0;
+  } else { S.roofY = 0; S.roofB = null; }
   hero.g.visible = !ED.fp;
   blip(220, 0.06, 0.18, 'square');
 }
@@ -5029,7 +5205,7 @@ function updateCamera(dt){
   const inCar = !!S.inCar;
   const tx = inCar ? S.inCar.x : player.x;
   const tz = inCar ? S.inCar.z : player.z;
-  const ty = (inCar ? 1.9 : 1.5) + (inCar ? (S.inCar.airborne ? S.inCar.airH : 0) : S.jetY + S.jumpY);
+  const ty = (inCar ? 1.9 : 1.5) + (inCar ? (S.inCar.airborne ? S.inCar.airH : 0) : S.jetY + S.jumpY + S.roofY);
   if(ED.fp){
     // ===== ВИД ОТ ПЕРВОГО ЛИЦА (GTA 5 / GTA 6) =====
     if(inCar && camState.mouseIdle > 0.4)
@@ -5037,7 +5213,7 @@ function updateCamera(dt){
     camDesired.set(
       tx + (inCar ? Math.cos(camState.yaw) * 0.35 : 0),
       (inCar ? 1.42 : 1.62) + (inCar ? Math.sin(S.time * 9) * Math.min(Math.abs(S.inCar.speed) * 0.004, 0.05)
-                                     + (S.inCar.airborne ? S.inCar.airH : 0) : S.jetY + S.jumpY),
+                                     + (S.inCar.airborne ? S.inCar.airH : 0) : S.jetY + S.jumpY + S.roofY),
       tz + (inCar ? Math.sin(camState.yaw) * 0.35 : 0));
     /* F3/F4 — отодвинуть камеру назад по направлению взгляда.
        Смещение входит в ЦЕЛЕВУЮ точку, иначе сглаживание будет с ним бороться
@@ -5182,6 +5358,17 @@ function update(dt){
   updateDrones(dt);
   updateBombs(dt);
   statsTick(dt);
+  /* ===== ГРАНИЦЫ ГОРОДОВ И СТРАН: новый регион — новое настроение ===== */
+  if(!S.dead){
+    const rg = regionAt(player.x, player.z);
+    if(S.region !== rg){
+      const first = !S.region;
+      S.region = rg;
+      if(first) showMsg('🏙 ' + rg.name, rg.sub, 3.2);
+      else showMsg('🌍 ТЫ ПЕРЕСЁК ГРАНИЦУ', rg.name + ' • ' + rg.sub, 3.8);
+      blip(640, 0.07, 0.3, 'sine');
+    }
+  }
   powerIncome(dt);                               // казна страны и доход города
   updateJail(dt);                                // отсидка в участке
   updateArrest(dt);                              // коп может поймать живьём
@@ -5231,21 +5418,26 @@ function update(dt){
     waterMesh.geometry.computeVertexNormals();
   }
   garageUpdate(dt);
-  // киллеры держатся в городе, но появляются редко (в личном режиме — не появляются)
-  if(ED.killers && !ED.special){
-    const kk = peds.filter(p => p.killer && !p.dead).length;
-    if(kk < 1 && Math.random() < dt * 0.05){       // примерно раз в 20 секунд
-      const a = Math.random() * Math.PI * 2, R = 70 + Math.random() * 60;
-      const kx = player.x + Math.cos(a) * R, kz = player.z + Math.sin(a) * R;
-      if(Math.abs(kx) < WORLD - 20 && Math.abs(kz) < WORLD - 20) spawnKiller();
+  // переборы пешеходов раз в 0.2 с — каждый кадр это незачем (вероятности сохраняем)
+  S.aiAcc = (S.aiAcc || 0) + dt;
+  if(S.aiAcc >= 0.2){
+    const adt = S.aiAcc; S.aiAcc = 0;
+    // киллеры держатся в городе, но появляются редко (в личном режиме — не появляются)
+    if(ED.killers && !ED.special){
+      const kk = peds.filter(p => p.killer && !p.dead).length;
+      if(kk < 1 && Math.random() < adt * 0.05){     // примерно раз в 20 секунд
+        const a = Math.random() * Math.PI * 2, R = 70 + Math.random() * 60;
+        const kx = player.x + Math.cos(a) * R, kz = player.z + Math.sin(a) * R;
+        if(Math.abs(kx) < WORLD - 20 && Math.abs(kz) < WORLD - 20) spawnKiller();
+      }
     }
-  }
-  // банды держатся в городе
-  if(ED.gangs){
-    const allies = peds.filter(p => p.gang === 'ally' && !p.dead).length;
-    const rivals = peds.filter(p => p.gang === 'rival' && !p.dead).length;
-    if(allies < 5 && Math.random() < dt * 1.5) spawnGangPed('ally');
-    if(!ED.special && rivals < 7 && Math.random() < dt * 1.2) spawnGangPed('rival');
+    // банды держатся в городе
+    if(ED.gangs){
+      const allies = peds.filter(p => p.gang === 'ally' && !p.dead).length;
+      const rivals = peds.filter(p => p.gang === 'rival' && !p.dead).length;
+      if(allies < 5 && Math.random() < adt * 1.5) spawnGangPed('ally');
+      if(!ED.special && rivals < 7 && Math.random() < adt * 1.2) spawnGangPed('rival');
+    }
   }
   updateCamera(dt);
   flashLight.intensity = Math.max(0, flashLight.intensity - dt * 40);
@@ -5300,6 +5492,13 @@ function drawMinimap(c){
   for(const b of blockRects) c.fillRect(x0 + b.x*k, y0 + b.z*k, b.w*k, b.h*k);
   c.fillStyle = '#3f6b3c';
   for(const p of parks) c.fillRect(x0 + p.x*k, y0 + p.z*k, p.w*k, p.h*k);
+  // города и страны: границы регионов и их названия
+  c.strokeStyle = 'rgba(255,255,255,0.2)'; c.lineWidth = 1;
+  for(const q of [[0,0], [1,0], [0,1], [1,1]])
+    c.strokeRect(x0 + q[0]*WORLD/2*k, y0 + q[1]*WORLD/2*k, WORLD/2*k, WORLD/2*k);
+  c.fillStyle = 'rgba(255,255,255,0.6)'; c.font = 'bold 8px monospace'; c.textAlign = 'center';
+  const rc = [[WORLD/4, WORLD/4], [WORLD*3/4, WORLD/4], [WORLD/4, WORLD*3/4], [WORLD*3/4, WORLD*3/4]];
+  for(let i = 0; i < 4; i++) c.fillText(REGIONS[i].name, x0 + rc[i][0]*k, y0 + rc[i][1]*k);
   // районы банд (San Andreas) — поверх застройки
   if(DISTRICTS.length){
     for(const d of DISTRICTS){
@@ -5653,6 +5852,13 @@ function drawHUD(){
   c.fillStyle = '#e6e6ea'; c.textAlign = 'center';
   const curW = WP();
   c.fillText(S.inCar ? 'SHIFT — НИТРО • F — ВЫЙТИ' : '1-8 / Q-E / КОЛЕСО — ОРУЖИЕ', W - 144, H - 33);
+  // подсказка лестницы в переулке / на крыше
+  if(S.ladder && !S.climb && !S.inCar && !S.inHeli){
+    c.font = 'bold 12px monospace';
+    c.fillStyle = 'rgba(0,0,0,0.55)'; rr(c, W - 268, H - 76, 248, 26, 5); c.fill();
+    c.fillStyle = '#ffd75e'; c.textAlign = 'center';
+    c.fillText(S.roofY > 0.3 ? 'G — СПУСТИТЬСЯ В ПЕРЕУЛОК' : 'G — ПОДНЯТЬСЯ НА КРЫШУ', W - 144, H - 58);
+  }
   // ===== ПАНЕЛЬ АРСЕНАЛА: 1-8, колесо / Q-E — переключение =====
   if(!S.inCar){
     const sw = 44, sh = 44, gap = 4;
@@ -6675,8 +6881,13 @@ window.addEventListener('keydown', e => {
   // ===== ДОМА И КОМПАНИИ: G — войти/выйти, R — действие =====
   if(e.code === 'KeyG'){
     if(S.inside) exitPlace();
-    else if(copNearR()){ showMsg('ТЫ СДАЛСЯ ПОЛИЦИИ', 'Смирись — отсидишь срок', 2.4); bustPlayer(); }
-    else { const pl = placeNear(); if(pl) enterPlace(pl); }
+    else if(S.climb) return;                        // уже лезем — не мешаем
+    else {
+      const l = ladderNear();
+      if(l){ climbLadder(l); return; }               // лестница в переулке — на крышу
+      if(copNearR()){ showMsg('ТЫ СДАЛСЯ ПОЛИЦИИ', 'Смирись — отсидишь срок', 2.4); bustPlayer(); }
+      else if(S.roofY < 0.3){ const pl = placeNear(); if(pl) enterPlace(pl); }
+    }
     return;
   }
   if(e.code === 'KeyR'){ if(S.inside) placeAction(); else placeBuy(); return; }
@@ -6904,6 +7115,7 @@ window.__g3 = {S, M, player, camState, cars, peds, pickups, bullets, hero, scene
   SECRETS, giveJetpack, spawnJetBike, spawnSecretHeli, secretSpot, jetClearance,
   bustPlayer, updateJail, updateArrest, copNearR, moneyRain,
   damageCar, breakGlass, spawnGangPed, addCrime, updateWanted, spawnCop,
+  LADDERS, ladderNear, climbLadder, REGIONS, regionAt, WORLD, GRID,
   powerIncome, makePresident, makeMayor,
   post: () => post,
   NET, OPT, netStart, netStop, netCount, receiveMsg, incomingCall, inbox,
