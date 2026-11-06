@@ -1745,7 +1745,8 @@ const S = {
   jailT:0, arrestT:0, arrestSaid:0,                // тюрьма: срок, счётчик поимки
   rainT:0, rainSaid:0,                             // СПЕЦИАЛ: деньги с неба
   roofY:0, roofB:null, roofV:0, roofH:12,           // лестницы: высота крыши, падение, откуда сорвался
-  climb:null, ladder:null, region:null              // подъём по лестнице и текущий город
+  climb:null, ladder:null, region:null,            // подъём по лестнице и текущий город
+  fpModel:true                                      // true — идёт вид от первого лица (модель скрыта)
 };
 /* ==================== АРСЕНАЛ: ножики, пистолеты, винтовки, базуки ==================== */
 const WEAPONS = [
@@ -2965,6 +2966,39 @@ function skinMat(c){
 }
 const PED_CLOTH = [0xd94f4f, 0x4f7ad9, 0x4fd97a, 0xd9c94f, 0x8f5fd9, 0xe0e0e0, 0x444444, 0xe07a3f, 0x3fd0d0];
 const PED_SKIN = [0xe8b58c, 0xc98d5f, 0x8d5a3a, 0xf0c9a6];
+/* ===== ЖИВЫЕ РЕЧИ: «прикольные» прохожие замечают тебя и болтают ===== */
+const PED_LINES = [
+  'Красивая тачка... мне бы такую!',
+  'Я сегодня бегал по утрам! Честно!',
+  'Ты точно не из налоговой?',
+  'У меня свидание через час...',
+  'Какая погода, да?',
+  'Мне надо больше кофе...',
+  'Я миллионер... во сне',
+  'Ты похож на моего соседа!',
+  'Тут всегда так шумно',
+  'Сдачи не надо!',
+  'Я это вчера видел по TV',
+  'Привет, сосед!',
+  'Держись, молодец!',
+  'Осторожно, герой!',
+  'Кошку видел? Она снова сбежала!',
+  'Я говорю на 5 языках... лайки',
+  'Эй, убери машину с газона!',
+  'Вторник? Опять вторник?',
+  'Я тут главный... по мнению мамы',
+  'Не пугай меня так!',
+  'Хочешь автограф? Нет? Жаль.',
+  'Такси!.. А, это ты?',
+  'В жилом районе нельзя так!',
+  'Солнце сегодня злое...',
+  'А джетпак где взял?!',
+  'Я бы тоже так, но мне нельзя'
+];
+const PED_SCREAM = [
+  'Стреляют!!!', 'Беги кто может!', 'Ложись!', 'Помогите!!!',
+  'Это не я!', 'О боже, не снова!', 'Убегай!', 'Всё, хватит!'
+];
 const legGeo = new THREE.BoxGeometry(0.22, 0.8, 0.24); legGeo.translate(0, -0.4, 0);
 const armGeo = new THREE.BoxGeometry(0.16, 0.62, 0.18); armGeo.translate(0, -0.31, 0);
 const torsoGeo = new THREE.BoxGeometry(0.6, 0.75, 0.36);
@@ -3120,7 +3154,7 @@ function updateViewModel(dt){
   if(!viewGun) return;
   const inCar = !!S.inCar;
   // при отдалённой камере (F3) видно героя — руку от первого лица прячем
-  viewGun.visible = !inCar && !S.dead && camState.zoom < 2.5;
+  viewGun.visible = !inCar && !S.dead && S.fpModel;
   if(inCar || S.dead || camState.zoom >= 2.5) return;
   const w = WP();
   const bob = Math.sin(player.anim * 1.1) * 0.012 * player.moving;
@@ -3564,6 +3598,14 @@ function updatePed(p, dt){
   p.anim += dt * (p.panic > 0 ? 12 : 6);
   p.turn -= dt;
   const dp = dist(p.x, p.z, player.x, player.z);
+  /* ===== ЖИВЫЕ РЕЧИ: заметил тебя — болтает; в панике — кричит ===== */
+  if(p.sayT === undefined) p.sayT = S.time + rand(0.5, 8);
+  if(S.time >= p.sayT && dp < 12 && !S.inHeli){
+    p.sayT = S.time + rand(9, 18);
+    p.say = p.panic > 0 ? pick(PED_SCREAM) : pick(PED_LINES);
+    p.sayEnd = S.time + 3.4;
+  }
+  if(p.say && S.time > p.sayEnd) p.say = null;
   if(S.wanted > 0.3 && dp < 42) p.panic = Math.max(p.panic, 2.5);
   if(p.panic > 0){
     p.panic -= dt;
@@ -4530,6 +4572,17 @@ function updatePlayer(dt){  player.shootCd -= dt; player.hurtCd -= dt; player.da
       c.steer = lerp(c.steer, st * grip, clamp(dt*8, 0, 1));
     }
     const gripOut = clamp(Math.abs(c.speed) / 8, 0, 1);
+    /* ===== РЕАЛИЗМ: дым из-под задних колёс — дрейф, юз, экстренное торможение ===== */
+    if(!c.airborne && Math.abs(c.speed) > 7 &&
+       (hand || (st !== 0 && Math.abs(c.speed) > 15) || (thr < 0 && Math.abs(c.speed) > 13)) &&
+       Math.random() < dt * 34){
+      const bx2 = c.x - Math.cos(c.angle) * 1.4, bz2 = c.z - Math.sin(c.angle) * 1.4;
+      const sx2 = Math.cos(c.angle + Math.PI/2) * 0.8, sz2 = Math.sin(c.angle + Math.PI/2) * 0.8;
+      spawnPart(bx2 + sx2, 0.32, bz2 + sz2, rand(-0.5,0.5), rand(0.4,1), rand(-0.5,0.5),
+                rand(0.5,0.9), 0xd6d6da, -1.1);
+      spawnPart(bx2 - sx2, 0.32, bz2 - sz2, rand(-0.5,0.5), rand(0.4,1), rand(-0.5,0.5),
+                rand(0.5,0.9), 0xd6d6da, -1.1);
+    }
     // ===== ДЖЕТ-БАЙК (секрет из телефона): ПРОБЕЛ — взлёт, CTRL — посадка =====
     if(c.jet){
       const up = keys.Space, dn = keys.ControlLeft || keys.ControlRight || keys.KeyC;
@@ -4614,11 +4667,11 @@ function updatePlayer(dt){  player.shootCd -= dt; player.hurtCd -= dt; player.da
       const up = keys.Space, dn = keys.ControlLeft || keys.ControlRight || keys.KeyC;
       S.jetV = clamp(S.jetV + (up ? 14 : (dn ? -17 : -6)) * dt, -12, 9);
       S.jetY = Math.max(0, S.jetY + S.jetV * dt);
-      if(S.jetY <= 0){ S.jetY = 0; if(S.jetV < 0) S.jetV = 0; }
+      if(S.jetY <= 0) jetLand();
     } else if(S.jetY > 0){                       // ранец отобрали — падение на землю
       S.jetV = Math.max(-18, S.jetV - 24 * dt);
       S.jetY = Math.max(0, S.jetY + S.jetV * dt);
-      if(S.jetY <= 0){ S.jetY = 0; S.jetV = 0; }
+      if(S.jetY <= 0) jetLand();
     }
     const jetFly = S.jetY > 0.35;
     /* ===== ЛЕСТНИЦЫ И КРЫШИ: подъём, спуск, падение с кромки ===== */
@@ -5036,6 +5089,21 @@ function climbLadder(l){
              from: S.roofY, to: up ? l.b.hgt : 0};
   blip(360, 0.06, 0.22, 'sine');
 }
+/* приземление джетпака: жёсткий удар по ногам — реалистичный урон от высоты */
+function jetLand(){
+  const imp = -S.jetV;
+  S.jetY = 0;
+  if(S.jetV < 0) S.jetV = 0;
+  if(imp > 10 && player.alive && !S.dead && !S.god){
+    const dmg = Math.round((imp - 10) * 2.5);
+    if(dmg > 0){
+      damagePlayer(dmg);
+      S.shake = Math.max(S.shake, 0.55);
+      blip(85, 0.16, 0.3, 'sine');
+      if(!S.dead) showMsg('ЖЁСТКОЕ ПРИЗЕМЛЕНИЕ', 'удар пришёлся на ноги: -' + dmg, 2.2);
+    }
+  }
+}
 function heliNear(){
   let best = null, bd = 7.5;
   const myH = S.jetY + S.jumpY + S.roofY;             // своя высота: на крыше — своя площадка
@@ -5178,8 +5246,12 @@ function jetClearance(){
    При отдалении камеры (F3) модель появляется — видно одежду и причёску. */
 function syncHeroVis(){
   if(S.dead) return;                                // состояние смерти решает respawn()
-  if(S.inCar || S.inHeli){ hero.g.visible = false; return; }
-  hero.g.visible = !ED.fp || camState.zoom >= 2.5;
+  if(S.inCar || S.inHeli){ hero.g.visible = false; S.fpModel = true; return; }
+  if(!ED.fp){ hero.g.visible = true; S.fpModel = false; return; }
+  /* гистерезис ±0.1 м: при зуме через порог модель НЕ мигает («провалы» вида) */
+  if(hero.g.visible){ if(camState.zoom < 2.4) hero.g.visible = false; }
+  else if(camState.zoom >= 2.6) hero.g.visible = true;
+  S.fpModel = !hero.g.visible;
 }
 function updateCamera(dt){
   syncHeroVis();
@@ -5696,11 +5768,44 @@ function drawBigMap(c){
   c.fillText('TAB — закрыть • жёлтая метка — цель • синие точки — полиция', W/2, y0 + size + 32);
   c.textAlign = 'left';
 }
+/* речевые пузыри «прикольных» прохожих — над головой, плавно гаснут */
+function drawSpeech(c){
+  const v = new THREE.Vector3();
+  for(const p of peds){
+    if(p.dead || !p.say) continue;
+    if(S.time > p.sayEnd){ p.say = null; continue; }
+    const dx = p.x - player.x, dz = p.z - player.z;
+    if(dx < -34 || dx > 34 || dz < -34 || dz > 34) continue;
+    v.set(p.x, 2.3, p.z).project(camera);
+    if(v.z > 1 || v.z < -1) continue;
+    const sx = (v.x * 0.5 + 0.5) * W, sy = (-v.y * 0.5 + 0.5) * H;
+    if(sx < -80 || sx > W + 80 || sy < -30 || sy > H + 30) continue;
+    const left = Math.max(0, p.sayEnd - S.time);
+    c.globalAlpha = left < 0.7 ? left / 0.7 : 1;
+    c.font = 'bold 12px monospace';
+    const tw = c.measureText(p.say).width;
+    const bw = tw + 16, bh = 22;
+    const bx = clamp(sx - bw/2, 6, W - bw - 6), by = Math.max(6, sy - bh - 8);
+    c.fillStyle = 'rgba(0,0,0,0.28)';
+    rr(c, bx + 1, by + 2, bw, bh, 6); c.fill();
+    c.fillStyle = 'rgba(255,255,255,0.95)';
+    rr(c, bx, by, bw, bh, 6); c.fill();
+    c.beginPath();
+    c.moveTo(sx - 5, by + bh); c.lineTo(sx + 5, by + bh); c.lineTo(sx, by + bh + 5);
+    c.closePath(); c.fill();
+    c.fillStyle = '#171a20';
+    c.textAlign = 'center';
+    c.fillText(p.say, bx + bw/2, by + 15);
+    c.globalAlpha = 1;
+    c.textAlign = 'left';
+  }
+}
 function drawHUD(){
   const c = hctx;
   c.clearRect(0, 0, W, H);
   if(S.state !== 'play') return;
   c.textAlign = 'left'; c.textBaseline = 'alphabetic';
+  drawSpeech(c);
 
   // задание
   if(M.def && !S.dead){

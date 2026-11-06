@@ -935,6 +935,39 @@ function driveCop(c, dt){
 /* ============================== ПЕШЕХОДЫ ============================== */
 const PED_SKIN = ['#e8b58c','#c98d5f','#8d5a3a','#f0c9a6'];
 const PED_CLOTH = ['#d94f4f','#4f7ad9','#4fd97a','#d9c94f','#8f5fd9','#e0e0e0','#444','#e07a3f','#3fd0d0'];
+/* ===== ЖИВЫЕ РЕЧИ: «прикольные» прохожие замечают тебя и болтают ===== */
+const PED_LINES = [
+  'Красивая тачка... мне бы такую!',
+  'Я сегодня бегал по утрам! Честно!',
+  'Ты точно не из налоговой?',
+  'У меня свидание через час...',
+  'Какая погода, да?',
+  'Мне надо больше кофе...',
+  'Я миллионер... во сне',
+  'Ты похож на моего соседа!',
+  'Тут всегда так шумно',
+  'Сдачи не надо!',
+  'Я это вчера видел по TV',
+  'Привет, сосед!',
+  'Держись, молодец!',
+  'Осторожно, герой!',
+  'Кошку видел? Она снова сбежала!',
+  'Я говорю на 5 языках... лайки',
+  'Эй, убери машину с газона!',
+  'Вторник? Опять вторник?',
+  'Я тут главный... по мнению мамы',
+  'Не пугай меня так!',
+  'Хочешь автограф? Нет? Жаль.',
+  'Такси!.. А, это ты?',
+  'В жилом районе нельзя так!',
+  'Солнце сегодня злое...',
+  'А мопед где взял?!',
+  'Я бы тоже так, но мне нельзя'
+];
+const PED_SCREAM = [
+  'Стреляют!!!', 'Беги кто может!', 'Ложись!', 'Помогите!!!',
+  'Это не я!', 'О боже, не снова!', 'Убегай!', 'Всё, хватит!'
+];
 function spawnPed(){
   let x, y, tries = 0;
   do { const p = randomRoadPoint(120); x = p.x + rand(-70, 70); y = p.y + rand(-70, 70); tries++; }
@@ -1023,6 +1056,14 @@ function updatePed(p, dt){
   p.anim += dt * 9;
   p.turn -= dt;
   const dp = dist(p.x, p.y, player.x, player.y);
+  /* ===== ЖИВЫЕ РЕЧИ: заметил тебя — болтает; в панике — кричит ===== */
+  if(p.sayT === undefined) p.sayT = S.time + rand(0.5, 8);
+  if(S.time >= p.sayT && dp < 260){
+    p.sayT = S.time + rand(9, 18);
+    p.say = p.panic > 0 ? pick(PED_SCREAM) : pick(PED_LINES);
+    p.sayEnd = S.time + 3.4;
+  }
+  if(p.say && S.time > p.sayEnd) p.say = null;
   if(S.wanted > 0.3 && dp < 420) p.panic = Math.max(p.panic, 2.5);
   if(p.panic > 0){
     p.panic -= dt;
@@ -2492,9 +2533,38 @@ function drawWeaponIcon(c, w, sel){
     c.beginPath(); c.moveTo(-14, 1); c.lineTo(-10, 1); c.lineTo(-11, 8); c.lineTo(-15, 8); c.closePath(); c.fill();
   }
 }
+/* речевые пузыри «прикольных» прохожих — над головой, плавно гаснут */
+function drawSpeech(){
+  for(const p of peds){
+    if(p.dead || !p.say) continue;
+    if(S.time > p.sayEnd){ p.say = null; continue; }
+    if(!worldVisible(p.x - 30, p.y - 46, 60, 60, 0)) continue;
+    const sx = (p.x - cam.x) * cam.zoom + W/2;
+    const sy = (p.y - cam.y) * cam.zoom + H/2;
+    const left = Math.max(0, p.sayEnd - S.time);
+    ctx.globalAlpha = left < 0.7 ? left / 0.7 : 1;
+    ctx.font = 'bold 12px monospace';
+    const tw = ctx.measureText(p.say).width;
+    const bw = tw + 16, bh = 22;
+    const bx = clamp(sx - bw/2, 6, W - bw - 6), by = Math.max(6, sy - bh - 14);
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    rr(bx + 1, by + 2, bw, bh, 6); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    rr(bx, by, bw, bh, 6); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(sx - 5, by + bh); ctx.lineTo(sx + 5, by + bh); ctx.lineTo(sx, by + bh + 5);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#171a20';
+    ctx.textAlign = 'center';
+    ctx.fillText(p.say, bx + bw/2, by + 15);
+    ctx.globalAlpha = 1;
+    ctx.textAlign = 'left';
+  }
+}
 function drawHUD(){
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  drawSpeech();
 
   // задание
   if(M.def && !S.dead){
